@@ -8,7 +8,6 @@ description: >-
   in the commit body, and writes .superpowers/sdd/task-N-report.md. Never pushes
   and never opens a PR — the controller owns integration. Use when a task brief
   is ready to be built.
-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, advisor
 model: opus
 ---
 
