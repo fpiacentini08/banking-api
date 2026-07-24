@@ -28,3 +28,11 @@ management:
   endpoint:
     health:
       show-details: always
+banking:
+  eventsourcing:
+    command-stripes: 8
+    batch-size: 100
+    poll-interval: 100ms
+    snapshot-threshold: 100
+    max-command-attempts: 3
+    deadline-poll-interval: 500ms
