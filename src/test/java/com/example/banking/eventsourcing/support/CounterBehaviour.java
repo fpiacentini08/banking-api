@@ -46,4 +46,34 @@ public final class CounterBehaviour
                     : Either.right(List.of(new Decremented(c.by())));
         };
     }
+
+    /** Test serializer: encodes counter events as "<SimpleName>:<by>". */
+    public static com.example.banking.eventsourcing.EventSerializer testSerializer() {
+        return new com.example.banking.eventsourcing.EventSerializer() {
+            @Override
+            public com.example.banking.eventsourcing.SerializedEvent serialize(Object event, java.util.Map<String, String> metadata) {
+                int by = event instanceof Incremented i ? i.by() : ((Decremented) event).by();
+                return new com.example.banking.eventsourcing.SerializedEvent(
+                        java.util.UUID.randomUUID().toString(),
+                        event.getClass().getSimpleName(), 1,
+                        event.getClass().getSimpleName() + ":" + by, "{}",
+                        java.time.Instant.EPOCH);
+            }
+
+            @Override
+            public Object deserialize(com.example.banking.eventsourcing.SerializedEvent event) {
+                int by = Integer.parseInt(event.payload().split(":")[1]);
+                return event.payload().startsWith("Incremented") ? new Incremented(by) : new Decremented(by);
+            }
+        };
+    }
+
+    /** Test codec for Counter state: encodes the int value as a string. */
+    public static com.example.banking.eventsourcing.PayloadCodec testCodec() {
+        return new com.example.banking.eventsourcing.PayloadCodec() {
+            @Override public String encode(Object value) { return String.valueOf(((Counter) value).value()); }
+            @Override @SuppressWarnings("unchecked")
+            public <T> T decode(String json, Class<T> type) { return (T) new Counter(Integer.parseInt(json)); }
+        };
+    }
 }
