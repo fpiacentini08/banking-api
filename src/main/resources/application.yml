@@ -7,6 +7,10 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  kafka:
+    consumer:
+      auto-offset-reset: earliest
+      group-id: banking-api
 management:
   endpoints:
     web:
