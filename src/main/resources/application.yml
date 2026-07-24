@@ -7,7 +7,6 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
-    baseline-on-migrate: true
 management:
   endpoints:
     web:
