@@ -152,9 +152,10 @@ stateDiagram-v2
 
 ## Event distribution (Kafka)
 
-Domain events are published to Kafka via the Axon Kafka extension, forming the event-driven backbone
-and the seam for a future real external-bank integration. Kafka carries events outward; it is
-explicitly not the event store.
+Domain events are relayed to Kafka by an Axon event handler using `spring-kafka`, forming the
+event-driven backbone and the seam for a future real external-bank integration. Kafka carries events
+outward; it is explicitly not the event store. (The Axon `extension-kafka` has no Axon 5 release, so
+`spring-kafka` is used directly rather than the Axon-specific bridge.)
 
 ## Idempotency and concurrency
 
@@ -186,7 +187,7 @@ explicitly not the event store.
 | Runtime / framework | Java 26, Spring Boot 4.1 (Spring Framework 7) |
 | ES / CQRS / sagas | Axon Framework 5 |
 | Event store | MySQL 9.7 (Axon `EmbeddedEventStore`, JPA/JDBC engine) |
-| Event bus | Apache Kafka (Axon `extension-kafka`) |
+| Event bus | Apache Kafka via `spring-kafka` (Axon event-handler relay) |
 | Read models | MySQL 9.7 (Spring Data JPA) |
 | Cache / idempotency | Redis 8.8 (Spring Data Redis) |
 | Migrations | Flyway |

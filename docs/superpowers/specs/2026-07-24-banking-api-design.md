@@ -37,7 +37,7 @@ a functional-programming bias.
 | Framework | Spring Boot 4.1.0 (Spring Framework 7) |
 | Event sourcing / CQRS / sagas | Axon Framework 5 |
 | Event store | MySQL 9.7 via Axon `EmbeddedEventStore` + JPA/JDBC storage engine |
-| Event distribution bus | Apache Kafka via Axon `extension-kafka` |
+| Event distribution bus | Apache Kafka via `spring-kafka` (Axon event-handler relay) |
 | Read models / projections | MySQL 9.7 (Spring Data JPA) |
 | Cache / idempotency | Redis 8.8 (Spring Data Redis) |
 | Schema migrations | Flyway |
@@ -54,9 +54,10 @@ a functional-programming bias.
 - **Axon Framework 4 reached end of life 2026-06-30.** Axon 5 is the required line and supports
   Spring Boot 4. Axon 5 is a new programming model with thinner documentation than v4 — budget
   learning time.
-- **`extension-kafka`**: confirm an Axon-5-compatible release exists at build time; Axon extensions
-  can lag major framework releases. If unavailable, publish to Kafka via a transactional outbox
-  fed by an Axon event handler as a fallback.
+- **`extension-kafka`**: the Axon Kafka extension has **no Axon 5 release** (still on the 4.x line as
+  of 2026-07). Kafka integration therefore does **not** use the extension; instead an Axon event
+  handler relays domain events to Kafka via plain `spring-kafka`. Kafka remains the broker; only the
+  Axon-specific bridge is dropped.
 - **Kafka is a distribution bus, not an event store** (AxonIQ's own guidance). MySQL is the source
   of truth for events; Kafka carries them outward to consumers.
 
@@ -155,8 +156,9 @@ rejected; opening an account requires an existing user.
 
 ### Distribution
 
-- The Axon Kafka extension publishes domain events to Kafka topic(s), forming the event-driven
-  backbone and the seam for any future external-bank integration.
+- An Axon event handler relays domain events to Kafka topic(s) via `spring-kafka`, forming the
+  event-driven backbone and the seam for any future external-bank integration. (The Axon
+  `extension-kafka` has no Axon 5 release, so `spring-kafka` is used directly.)
 
 ## 9. Idempotency and concurrency
 
