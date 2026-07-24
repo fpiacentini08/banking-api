@@ -1,13 +1,22 @@
 spring:
   application:
     name: banking-api
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/banking
+    username: root
+    password: root
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
   flyway:
     enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
   kafka:
+    bootstrap-servers: ${KAFKA_HOST:localhost}:9092
     consumer:
       auto-offset-reset: earliest
       group-id: banking-api
