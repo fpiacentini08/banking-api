@@ -1,6 +1,7 @@
 # IDE / tooling
 .idea/
-.claude/
+.claude/*
+!.claude/agents/
 
 # Maven build output
 target/
