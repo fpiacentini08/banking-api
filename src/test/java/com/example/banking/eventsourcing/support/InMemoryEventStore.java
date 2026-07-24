@@ -1,9 +1,9 @@
 package com.example.banking.eventsourcing.support;
 
-import com.example.banking.eventsourcing.ConcurrencyConflict;
-import com.example.banking.eventsourcing.EventStore;
-import com.example.banking.eventsourcing.SerializedEvent;
-import com.example.banking.eventsourcing.StoredEvent;
+import com.example.banking.eventsourcing.event.ConcurrencyConflict;
+import com.example.banking.eventsourcing.event.EventStore;
+import com.example.banking.eventsourcing.event.SerializedEvent;
+import com.example.banking.eventsourcing.event.StoredEvent;
 
 import java.util.ArrayList;
 import java.util.List;

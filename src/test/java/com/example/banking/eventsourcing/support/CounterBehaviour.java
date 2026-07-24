@@ -1,7 +1,7 @@
 package com.example.banking.eventsourcing.support;
 
-import com.example.banking.eventsourcing.AggregateBehaviour;
-import com.example.banking.eventsourcing.DomainError;
+import com.example.banking.eventsourcing.aggregate.AggregateBehaviour;
+import com.example.banking.eventsourcing.common.DomainError;
 import io.vavr.control.Either;
 
 import java.util.List;
@@ -48,12 +48,12 @@ public final class CounterBehaviour
     }
 
     /** Test serializer: encodes counter events as "<SimpleName>:<by>". */
-    public static com.example.banking.eventsourcing.EventSerializer testSerializer() {
-        return new com.example.banking.eventsourcing.EventSerializer() {
+    public static com.example.banking.eventsourcing.event.EventSerializer testSerializer() {
+        return new com.example.banking.eventsourcing.event.EventSerializer() {
             @Override
-            public com.example.banking.eventsourcing.SerializedEvent serialize(Object event, java.util.Map<String, String> metadata) {
+            public com.example.banking.eventsourcing.event.SerializedEvent serialize(Object event, java.util.Map<String, String> metadata) {
                 int by = event instanceof Incremented i ? i.by() : ((Decremented) event).by();
-                return new com.example.banking.eventsourcing.SerializedEvent(
+                return new com.example.banking.eventsourcing.event.SerializedEvent(
                         java.util.UUID.randomUUID().toString(),
                         event.getClass().getSimpleName(), 1,
                         event.getClass().getSimpleName() + ":" + by, "{}",
@@ -61,7 +61,7 @@ public final class CounterBehaviour
             }
 
             @Override
-            public Object deserialize(com.example.banking.eventsourcing.SerializedEvent event) {
+            public Object deserialize(com.example.banking.eventsourcing.event.SerializedEvent event) {
                 int by = Integer.parseInt(event.payload().split(":")[1]);
                 return event.payload().startsWith("Incremented") ? new Incremented(by) : new Decremented(by);
             }
@@ -69,8 +69,8 @@ public final class CounterBehaviour
     }
 
     /** Test codec for Counter state: encodes the int value as a string. */
-    public static com.example.banking.eventsourcing.PayloadCodec testCodec() {
-        return new com.example.banking.eventsourcing.PayloadCodec() {
+    public static com.example.banking.eventsourcing.common.PayloadCodec testCodec() {
+        return new com.example.banking.eventsourcing.common.PayloadCodec() {
             @Override public String encode(Object value) { return String.valueOf(((Counter) value).value()); }
             @Override @SuppressWarnings("unchecked")
             public <T> T decode(String json, Class<T> type) { return (T) new Counter(Integer.parseInt(json)); }

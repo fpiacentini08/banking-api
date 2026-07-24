@@ -1,8 +1,8 @@
 package com.example.banking.infra;
 
-import com.example.banking.adapter.out.eventstore.JdbcSnapshotStore;
-import com.example.banking.eventsourcing.Snapshot;
-import com.example.banking.eventsourcing.SnapshotStore;
+import com.example.banking.adapter.out.eventstore.snapshot.JdbcSnapshotStore;
+import com.example.banking.eventsourcing.snapshot.Snapshot;
+import com.example.banking.eventsourcing.snapshot.SnapshotStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

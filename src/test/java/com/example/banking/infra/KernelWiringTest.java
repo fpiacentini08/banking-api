@@ -1,12 +1,12 @@
 package com.example.banking.infra;
 
-import com.example.banking.eventsourcing.CommandBus;
-import com.example.banking.eventsourcing.DeadlineScheduler;
-import com.example.banking.eventsourcing.EventSerializer;
-import com.example.banking.eventsourcing.EventStore;
-import com.example.banking.eventsourcing.SagaStore;
-import com.example.banking.eventsourcing.SnapshotStore;
-import com.example.banking.eventsourcing.TokenStore;
+import com.example.banking.eventsourcing.command.CommandBus;
+import com.example.banking.eventsourcing.saga.DeadlineScheduler;
+import com.example.banking.eventsourcing.event.EventSerializer;
+import com.example.banking.eventsourcing.event.EventStore;
+import com.example.banking.eventsourcing.saga.SagaStore;
+import com.example.banking.eventsourcing.snapshot.SnapshotStore;
+import com.example.banking.eventsourcing.processor.TokenStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

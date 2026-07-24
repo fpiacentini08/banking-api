@@ -1,14 +1,14 @@
 package com.example.banking.infra;
 
-import com.example.banking.adapter.out.eventstore.JdbcEventStore;
-import com.example.banking.adapter.out.eventstore.JdbcTokenStore;
-import com.example.banking.adapter.out.eventstore.SpringTransactionalRunner;
-import com.example.banking.eventsourcing.EventStore;
-import com.example.banking.eventsourcing.SerializedEvent;
-import com.example.banking.eventsourcing.StoredEvent;
-import com.example.banking.eventsourcing.TokenStore;
-import com.example.banking.eventsourcing.TrackingProcessor;
-import com.example.banking.eventsourcing.TransactionalRunner;
+import com.example.banking.adapter.out.eventstore.store.JdbcEventStore;
+import com.example.banking.adapter.out.eventstore.processor.JdbcTokenStore;
+import com.example.banking.adapter.out.eventstore.store.SpringTransactionalRunner;
+import com.example.banking.eventsourcing.event.EventStore;
+import com.example.banking.eventsourcing.event.SerializedEvent;
+import com.example.banking.eventsourcing.event.StoredEvent;
+import com.example.banking.eventsourcing.processor.TokenStore;
+import com.example.banking.eventsourcing.processor.TrackingProcessor;
+import com.example.banking.eventsourcing.common.TransactionalRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

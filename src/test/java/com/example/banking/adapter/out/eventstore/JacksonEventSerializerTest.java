@@ -1,7 +1,11 @@
 package com.example.banking.adapter.out.eventstore;
 
-import com.example.banking.eventsourcing.EventTypeRegistry;
-import com.example.banking.eventsourcing.SerializedEvent;
+import com.example.banking.adapter.out.eventstore.serialization.JacksonEventSerializer;
+import com.example.banking.adapter.out.eventstore.serialization.Upcaster;
+import com.example.banking.adapter.out.eventstore.serialization.UpcasterChain;
+
+import com.example.banking.eventsourcing.event.EventTypeRegistry;
+import com.example.banking.eventsourcing.event.SerializedEvent;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;

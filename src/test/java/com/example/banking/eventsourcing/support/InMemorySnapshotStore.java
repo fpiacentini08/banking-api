@@ -1,7 +1,7 @@
 package com.example.banking.eventsourcing.support;
 
-import com.example.banking.eventsourcing.Snapshot;
-import com.example.banking.eventsourcing.SnapshotStore;
+import com.example.banking.eventsourcing.snapshot.Snapshot;
+import com.example.banking.eventsourcing.snapshot.SnapshotStore;
 
 import java.util.HashMap;
 import java.util.Map;

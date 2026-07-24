@@ -1,7 +1,7 @@
 package com.example.banking.eventsourcing.fixture;
 
-import com.example.banking.eventsourcing.AggregateBehaviour;
-import com.example.banking.eventsourcing.DomainError;
+import com.example.banking.eventsourcing.aggregate.AggregateBehaviour;
+import com.example.banking.eventsourcing.common.DomainError;
 import io.vavr.control.Either;
 
 import java.util.List;

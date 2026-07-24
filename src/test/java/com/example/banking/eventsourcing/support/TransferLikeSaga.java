@@ -1,8 +1,8 @@
 package com.example.banking.eventsourcing.support;
 
-import com.example.banking.eventsourcing.DeadlineRequest;
-import com.example.banking.eventsourcing.SagaBehaviour;
-import com.example.banking.eventsourcing.SagaUpdate;
+import com.example.banking.eventsourcing.saga.DeadlineRequest;
+import com.example.banking.eventsourcing.saga.SagaBehaviour;
+import com.example.banking.eventsourcing.saga.SagaUpdate;
 
 import java.time.Duration;
 import java.util.List;

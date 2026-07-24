@@ -1,5 +1,11 @@
 package com.example.banking.eventsourcing;
 
+import com.example.banking.eventsourcing.aggregate.CommittedEvents;
+import com.example.banking.eventsourcing.aggregate.EventSourcingRepository;
+import com.example.banking.eventsourcing.common.DomainError;
+import com.example.banking.eventsourcing.event.ConcurrencyConflict;
+import com.example.banking.eventsourcing.snapshot.Snapshot;
+
 import com.example.banking.eventsourcing.support.CounterBehaviour;
 import com.example.banking.eventsourcing.support.InMemoryEventStore;
 import com.example.banking.eventsourcing.support.InMemorySnapshotStore;

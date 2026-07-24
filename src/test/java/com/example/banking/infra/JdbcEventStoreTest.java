@@ -1,11 +1,11 @@
 package com.example.banking.infra;
 
-import com.example.banking.adapter.out.eventstore.JdbcEventStore;
-import com.example.banking.adapter.out.eventstore.SpringTransactionalRunner;
-import com.example.banking.eventsourcing.ConcurrencyConflict;
-import com.example.banking.eventsourcing.EventStore;
-import com.example.banking.eventsourcing.SerializedEvent;
-import com.example.banking.eventsourcing.StoredEvent;
+import com.example.banking.adapter.out.eventstore.store.JdbcEventStore;
+import com.example.banking.adapter.out.eventstore.store.SpringTransactionalRunner;
+import com.example.banking.eventsourcing.event.ConcurrencyConflict;
+import com.example.banking.eventsourcing.event.EventStore;
+import com.example.banking.eventsourcing.event.SerializedEvent;
+import com.example.banking.eventsourcing.event.StoredEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
