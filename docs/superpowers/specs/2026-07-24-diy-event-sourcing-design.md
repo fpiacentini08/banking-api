@@ -39,6 +39,7 @@ Non-goals (out of scope, deliberately):
 | Programming model | Functional `decide`/`evolve` — pure functions, no annotations, no reflection |
 | Projection feed | Processors poll the MySQL event store (tokens); Kafka stays distribution-only |
 | Sequencing | Tasks 6–7 finish as-is (Axon-free); kernel becomes its own milestone |
+| Architecture rules | DIY `ArchCheck` on the JDK ClassFile API (`java.lang.classfile`) — ArchUnit dropped, incompatible with the Java version in use |
 
 ## 3. Module structure and dependency rules
 
@@ -67,7 +68,7 @@ com.example.banking
         └── messaging          # Kafka relay processor (spring-kafka)
 ```
 
-Dependency rules (ArchUnit-enforced):
+Dependency rules (enforced by the DIY `ArchCheck` architecture test — §9):
 
 - `eventsourcing` depends only on itself and Vavr.
 - `domain` depends only on itself and `eventsourcing`.
@@ -231,16 +232,25 @@ projections or sagas.
 - **Integration (Testcontainers MySQL):** append/replay round-trip; optimistic-conflict retry;
   processor catch-up after restart; projection rebuild; snapshot write + load; upcaster applied
   on read.
-- **ArchUnit:** the dependency rules of §3, added to the existing `HexagonalBoundaryTest` suite.
+- **Architecture rules — DIY `ArchCheck` (no ArchUnit):** ArchUnit is not compatible with the
+  Java version in use, so architecture rules are enforced by a small hand-built checker on the
+  **JDK ClassFile API** (`java.lang.classfile`, standard since Java 24 — always understands the
+  bytecode the JDK itself produced). `ArchCheck` scans `target/classes`, extracts every referenced
+  class per class (constant-pool `ClassEntry`s plus field/method descriptors — ArchUnit-grade
+  precision, method bodies included), and evaluates package allow-list rules: the dependency rules
+  of §3 plus the hexagonal-boundary rules. A self-test asserts the scanner sees a known dependency
+  (adapter → Spring), guarding against a silently empty scan.
 
 ## 10. Documentation and plan impact
 
 - `ARCHITECTURE.md` — replace every Axon reference: package tree, write/read sequence diagrams,
   technology-mapping row (`ES / CQRS / sagas → DIY eventsourcing kernel (this spec)`), the
-  concurrency note, and the schema note (Flyway now owns the event-store schema too).
+  concurrency note, and the schema note (Flyway now owns the event-store schema too). Replace
+  every ArchUnit reference (rules section heading, testing row) with the DIY `ArchCheck` checker.
 - `CLAUDE.md` — rewrite the Axon bullets: the annotation concession becomes "domain is 100 %
   pure"; drop the Axon-5-coordinates spike, `axon.axonserver.enabled=false`, and Axon-version
-  risk notes.
+  risk notes. Replace ArchUnit mentions with `ArchCheck` and drop `archunit-junit5` from the
+  community-version risk list (the checker has no third-party dependency).
 - Walking-skeleton plan — Task 5 (Axon event store) is **superseded by this spec**; the kernel
   is built as its own milestone, planned task-by-task via the writing-plans process after this
   spec is approved.

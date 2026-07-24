@@ -15,7 +15,9 @@ wiring, its architecture rules, and the documentation swap.
 
 **Tech Stack:** Java (as pinned in `pom.xml` — do not change `java.version`), Spring Boot 4.1,
 Vavr, Jackson (via Spring), Spring JDBC (`JdbcTemplate` — no JPA entities for kernel tables),
-Flyway, JUnit 5, AssertJ, Testcontainers (MySQL), ArchUnit.
+Flyway, JUnit 5, AssertJ, Testcontainers (MySQL), DIY architecture checker on the JDK ClassFile
+API (`java.lang.classfile` — ArchUnit is not compatible with the Java version in use and is not a
+dependency of this project).
 
 ## Preconditions
 
@@ -29,7 +31,7 @@ Flyway, JUnit 5, AssertJ, Testcontainers (MySQL), ArchUnit.
 
 - Base package `com.example.banking`. Kernel package `com.example.banking.eventsourcing`.
 - **Kernel purity:** `eventsourcing` may import only itself, `io.vavr..`, and `java..`. No Spring,
-  no Jackson, no JPA anywhere in it. Enforced by ArchUnit in Task 11.
+  no Jackson, no JPA anywhere in it. Enforced by the DIY `ArchCheck` test in Task 11.
 - **No reflection, no annotations** for dispatch — explicit registration everywhere.
 - **Business outcomes are `Either<DomainError, …>`** (Vavr). Tests assert **both arms**.
 - **Maven output convention (required):** every Maven run redirects to a file:
@@ -106,7 +108,9 @@ src/test/java/com/example/banking/eventsourcing/
 └── ... unit tests
 
 src/test/java/com/example/banking/infra/           # integration tests (Testcontainers)
-src/test/java/com/example/banking/architecture/    # EventSourcingKernelRulesTest
+src/test/java/com/example/banking/architecture/
+├── ArchCheck.java                     # DIY checker: JDK ClassFile API, package allow-list rules
+└── EventSourcingKernelRulesTest.java
 ```
 
 ## Task overview
@@ -123,7 +127,7 @@ src/test/java/com/example/banking/architecture/    # EventSourcingKernelRulesTes
 | 8 | SagaStore + SagaManager + SagaTestFixture + V5 | correlated saga state machine runtime |
 | 9 | DeadlineScheduler + poller + V6 migration | saga timeouts with cancel-on-terminal |
 | 10 | Spring wiring + properties + boot test | kernel beans in the app context |
-| 11 | ArchUnit kernel/domain purity rules | dependency rules locked |
+| 11 | DIY architecture checker (ClassFile API) + purity rules | dependency rules locked, no ArchUnit |
 | 12 | Documentation swap (ARCHITECTURE/CLAUDE/plan) | no stale Axon references |
 
 ---
@@ -3409,88 +3413,243 @@ git commit -m "feat: wire event-sourcing kernel beans and configuration properti
 
 ---
 
-### Task 11: ArchUnit rules — kernel and domain purity
+### Task 11: DIY architecture checker (JDK ClassFile API) — kernel and domain purity
+
+ArchUnit is **not** used in this project: it is not compatible with the Java version in use
+(its bundled bytecode parser lags new class-file versions). The checker is hand-built on the
+**JDK ClassFile API** (`java.lang.classfile`, a standard API since Java 24) — it always
+understands the bytecode produced by the JDK that compiled the project, so it can never lag.
 
 **Files:**
-- Create: `src/test/java/com/example/banking/architecture/EventSourcingKernelRulesTest.java`
-- Modify: `pom.xml` — only if `archunit-junit5` is not already present (walking-skeleton Task 6 adds it); if missing, add:
-
-```xml
-<dependency>
-    <groupId>com.tngtech.archunit</groupId>
-    <artifactId>archunit-junit5</artifactId>
-    <version>1.4.0</version>
-    <scope>test</scope>
-</dependency>
-```
+- Create: `src/test/java/com/example/banking/architecture/ArchCheck.java`
+- Test: `src/test/java/com/example/banking/architecture/EventSourcingKernelRulesTest.java`
+- Modify: `pom.xml` — only if an intervening merge reintroduced `com.tngtech.archunit:archunit-junit5`; remove it (this project must have no ArchUnit dependency).
 
 **Interfaces:**
-- Consumes: the package layout produced by Tasks 1–10.
-- Produces: enforced dependency rules; later milestones' domain code fails the build if it imports Spring/Jackson/adapter classes.
+- Consumes: the compiled package layout produced by Tasks 1–10 (`target/classes`).
+- Produces:
+  - `final class ArchCheck` — `static ArchCheck scan(java.nio.file.Path classesDir)`;
+    `java.util.List<Violation> violations(String packagePrefix, java.util.List<String> allowedPrefixes)`;
+    `boolean referenceExists(String fromPackagePrefix, String toPackagePrefix)`;
+    `record Violation(String className, String forbiddenReference)`.
+  - Enforced dependency rules: later milestones' domain code fails the build if it references Spring/Jackson/adapter classes.
 
-- [ ] **Step 1: Write the rules (they must pass immediately — the kernel is already pure)**
+- [ ] **Step 1: Write the failing rules test**
 
 `src/test/java/com/example/banking/architecture/EventSourcingKernelRulesTest.java`:
 
 ```java
 package com.example.banking.architecture;
 
-import com.tngtech.archunit.core.importer.ImportOption;
-import com.tngtech.archunit.junit.AnalyzeClasses;
-import com.tngtech.archunit.junit.ArchTest;
-import com.tngtech.archunit.lang.ArchRule;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * The kernel replaces Axon; unlike Axon annotations, it grants the domain no framework
  * touchpoint. These rules keep both the kernel and the domain free of infrastructure.
+ * Enforced by the DIY ArchCheck scanner (JDK ClassFile API) — no ArchUnit.
  */
-@AnalyzeClasses(packages = "com.example.banking", importOptions = ImportOption.DoNotIncludeTests.class)
 class EventSourcingKernelRulesTest {
 
-    @ArchTest
-    static final ArchRule kernelDependsOnlyOnItselfVavrAndJava =
-            classes().that().resideInAPackage("com.example.banking.eventsourcing..")
-                    .should().onlyDependOnClassesThat()
-                    .resideInAnyPackage("com.example.banking.eventsourcing..", "io.vavr..", "java..");
+    static ArchCheck check;
 
-    @ArchTest
-    static final ArchRule domainDependsOnlyOnItselfKernelVavrAndJava =
-            classes().that().resideInAPackage("com.example.banking.domain..")
-                    .should().onlyDependOnClassesThat()
-                    .resideInAnyPackage("com.example.banking.domain..",
-                            "com.example.banking.eventsourcing..", "io.vavr..", "java..");
+    @BeforeAll
+    static void scanCompiledClasses() {
+        check = ArchCheck.scan(Path.of("target", "classes"));
+    }
+
+    @Test
+    void scannerSeesKnownDependencies() {
+        // guard against a silently empty or broken scan: the JDBC adapter must reference Spring
+        assertThat(check.referenceExists("com.example.banking.adapter.out.eventstore", "org.springframework"))
+                .as("ArchCheck should see JdbcEventStore -> Spring; empty scan means the checker is broken")
+                .isTrue();
+    }
+
+    @Test
+    void kernelDependsOnlyOnItselfVavrAndJava() {
+        List<ArchCheck.Violation> violations = check.violations(
+                "com.example.banking.eventsourcing.",
+                List.of("com.example.banking.eventsourcing.", "io.vavr.", "java."));
+
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    void domainDependsOnlyOnItselfKernelVavrAndJava() {
+        List<ArchCheck.Violation> violations = check.violations(
+                "com.example.banking.domain.",
+                List.of("com.example.banking.domain.", "com.example.banking.eventsourcing.",
+                        "io.vavr.", "java."));
+
+        assertThat(violations).isEmpty();
+    }
 }
 ```
 
-- [ ] **Step 2: Run the test — verify it passes**
+- [ ] **Step 2: Run the test — verify it fails to compile**
 
 Run: `mvn -B test -Dtest=EventSourcingKernelRulesTest > target/mvn-out.txt 2>&1; tail -n 30 target/mvn-out.txt`
-Expected: PASS (2 rules). If the kernel rule fails, the violation list names the offending import —
-fix the kernel class (move the infrastructure concern into `adapter.out.eventstore`), never widen
-the rule.
+Expected: COMPILATION ERROR — `ArchCheck` does not exist.
 
-- [ ] **Step 3: Prove the rule bites (temporary red)**
+- [ ] **Step 3: Implement the checker**
+
+`src/test/java/com/example/banking/architecture/ArchCheck.java`:
+
+```java
+package com.example.banking.architecture;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassModel;
+import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.constantpool.PoolEntry;
+import java.lang.constant.ClassDesc;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.stream.Stream;
+
+/**
+ * DIY architecture checker on the JDK ClassFile API (java.lang.classfile, standard since
+ * Java 24). Scans compiled classes and extracts every referenced class name from the constant
+ * pool (which covers supertypes, thrown/caught types, instantiations, and method-body
+ * references) plus the class's own field/method descriptors (which cover types used only in
+ * signatures). Rules are package allow-lists over those references.
+ */
+final class ArchCheck {
+
+    record Violation(String className, String forbiddenReference) {}
+
+    private final Map<String, Set<String>> referencesByClass;
+
+    private ArchCheck(Map<String, Set<String>> referencesByClass) {
+        this.referencesByClass = referencesByClass;
+    }
+
+    static ArchCheck scan(Path classesDir) {
+        Map<String, Set<String>> references = new TreeMap<>();
+        try (Stream<Path> files = Files.walk(classesDir)) {
+            files.filter(path -> path.toString().endsWith(".class"))
+                    .forEach(path -> {
+                        ClassModel model = parse(path);
+                        references.put(model.thisClass().asInternalName().replace('/', '.'),
+                                referencesOf(model));
+                    });
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return new ArchCheck(references);
+    }
+
+    /** Classes under packagePrefix may reference only classes under the allowedPrefixes. */
+    List<Violation> violations(String packagePrefix, List<String> allowedPrefixes) {
+        List<Violation> violations = new ArrayList<>();
+        referencesByClass.forEach((className, references) -> {
+            if (!className.startsWith(packagePrefix)) {
+                return;
+            }
+            for (String reference : references) {
+                if (allowedPrefixes.stream().noneMatch(reference::startsWith)) {
+                    violations.add(new Violation(className, reference));
+                }
+            }
+        });
+        return violations;
+    }
+
+    /** True when any class under fromPackagePrefix references a class under toPackagePrefix. */
+    boolean referenceExists(String fromPackagePrefix, String toPackagePrefix) {
+        return referencesByClass.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith(fromPackagePrefix))
+                .flatMap(entry -> entry.getValue().stream())
+                .anyMatch(reference -> reference.startsWith(toPackagePrefix));
+    }
+
+    private static ClassModel parse(Path path) {
+        try {
+            return ClassFile.of().parse(path);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static Set<String> referencesOf(ClassModel model) {
+        Set<String> references = new TreeSet<>();
+        for (PoolEntry entry : model.constantPool()) {
+            if (entry instanceof ClassEntry classEntry) {
+                collectClassNames(classEntry.asSymbol().descriptorString(), references);
+            }
+        }
+        model.fields().forEach(field ->
+                collectClassNames(field.fieldTypeSymbol().descriptorString(), references));
+        model.methods().forEach(method -> {
+            collectClassNames(method.methodTypeSymbol().returnType().descriptorString(), references);
+            for (ClassDesc parameter : method.methodTypeSymbol().parameterList()) {
+                collectClassNames(parameter.descriptorString(), references);
+            }
+        });
+        return references;
+    }
+
+    /** Pulls every "Lcom/foo/Bar;" class name out of a descriptor (handles arrays and methods). */
+    private static void collectClassNames(String descriptor, Set<String> into) {
+        int start = descriptor.indexOf('L');
+        while (start >= 0) {
+            int end = descriptor.indexOf(';', start);
+            if (end < 0) {
+                return;
+            }
+            into.add(descriptor.substring(start + 1, end).replace('/', '.'));
+            start = descriptor.indexOf('L', end);
+        }
+    }
+}
+```
+
+API note for the builder: `java.lang.classfile` is final JDK API since Java 24. If a method name
+differs on the toolchain in use (e.g. `fieldTypeSymbol()` / `methodTypeSymbol()` accessors),
+resolve against the JDK's own javadoc for the running version — the *intent* (collect every
+referenced class from constant pool + member descriptors) is fixed; record any renamed accessor
+in the commit body per the bleeding-edge rule.
+
+- [ ] **Step 4: Run the test — verify it passes**
+
+Run: `mvn -B test -Dtest=EventSourcingKernelRulesTest > target/mvn-out.txt 2>&1; tail -n 30 target/mvn-out.txt`
+Expected: PASS (3 tests) — the kernel is already pure, and the self-test proves the scan is real.
+
+- [ ] **Step 5: Prove the rule bites (temporary red)**
 
 Temporarily add `import org.springframework.jdbc.core.JdbcTemplate;` plus a field
-`JdbcTemplate probe;` to `src/main/java/com/example/banking/eventsourcing/EventStore.java`, rerun:
+`JdbcTemplate probe = null;` to a kernel class (e.g. a new field in `EventTypeRegistry`), rerun:
 
 Run: `mvn -B test -Dtest=EventSourcingKernelRulesTest > target/mvn-out.txt 2>&1; tail -n 30 target/mvn-out.txt`
-Expected: FAIL naming `EventStore` depending on `org.springframework.jdbc`.
+Expected: FAIL — `kernelDependsOnlyOnItselfVavrAndJava` lists a `Violation(EventTypeRegistry,
+org.springframework.jdbc.core.JdbcTemplate)`.
 
 Revert the probe edit, rerun, expect PASS again.
 
-- [ ] **Step 4: Run the full suite**
+- [ ] **Step 6: Run the full suite**
 
 Run: `mvn -B verify > target/mvn-out.txt 2>&1; tail -n 60 target/mvn-out.txt`
 Expected: BUILD SUCCESS — all kernel tests plus the pre-existing walking-skeleton tests.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/test/java/com/example/banking/architecture/EventSourcingKernelRulesTest.java
-git commit -m "test: enforce kernel and domain purity with ArchUnit rules"
+git add src/test/java/com/example/banking/architecture
+git commit -m "test: enforce kernel and domain purity with DIY ClassFile-API checker"
 ```
 
 ---
@@ -3593,9 +3752,14 @@ deduplicate on `event_id`.
 | --- | --- |
 | ES / CQRS / sagas | DIY event-sourcing kernel (`com.example.banking.eventsourcing`, see the [design spec](docs/superpowers/specs/2026-07-24-diy-event-sourcing-design.md)) |
 | Event store | MySQL 9.7 (JDBC, Flyway-managed schema) |
-| Testing | JUnit 5, kernel GWT fixtures, ArchUnit, Testcontainers, AssertJ |
+| Testing | JUnit 5, kernel GWT fixtures, DIY `ArchCheck` (JDK ClassFile API), Testcontainers, AssertJ |
 
 and delete the trailing compatibility-notes sentence about Axon 4 / `extension-kafka`.
+
+11. Rename the section heading `## Architectural rules (enforced by ArchUnit)` to
+`## Architectural rules (enforced by the DIY ArchCheck test)` and, inside it, replace any
+"ArchUnit" wording with the checker (`src/test/java/com/example/banking/architecture/ArchCheck.java`,
+built on `java.lang.classfile` — no third-party dependency).
 
 - [ ] **Step 2: Update `CLAUDE.md`**
 
@@ -3606,12 +3770,12 @@ and delete the trailing compatibility-notes sentence about Axon 4 / `extension-k
 ```markdown
 - **The domain is 100 % pure.** Aggregates and sagas implement the kernel's `AggregateBehaviour`
   / `SagaBehaviour` interfaces (`com.example.banking.eventsourcing` — plain Java + Vavr, no
-  framework). ArchUnit enforces: `eventsourcing` depends only on itself + Vavr; `domain` depends
-  only on itself + `eventsourcing`; controllers must not reference aggregates directly; value
-  objects and events are immutable.
+  framework). The DIY `ArchCheck` test (JDK ClassFile API, no ArchUnit) enforces: `eventsourcing`
+  depends only on itself + Vavr; `domain` depends only on itself + `eventsourcing`; controllers
+  must not reference aggregates directly; value objects and events are immutable.
 ```
 
-4. In "Bleeding-edge stack risks", delete the two Axon bullets (Axon 5 coordinates, Axon Server) and the `extension-kafka` bullet; add:
+4. In "Bleeding-edge stack risks", delete the two Axon bullets (Axon 5 coordinates, Axon Server) and the `extension-kafka` bullet; remove `archunit-junit5` from the community-versions bullet (ArchUnit is not used — the DIY checker has no third-party dependency); add:
 
 ```markdown
 - **Event sourcing / CQRS / sagas are hand-built** — the DIY kernel in
@@ -3640,6 +3804,10 @@ Run: `grep -rni axon ARCHITECTURE.md CLAUDE.md docs/superpowers/plans/2026-07-24
 Expected: matches only in historical context (the superseded banner, the design spec's own
 "replaces Axon" framing, this plan's preamble). Any match describing Axon as *current* behavior is
 a defect — fix it.
+
+Run: `grep -rni archunit ARCHITECTURE.md CLAUDE.md pom.xml`
+Expected: no live references — only "not used / replaced by ArchCheck" phrasing, and no
+`archunit` dependency in `pom.xml`.
 
 Run the build once more to prove docs-only changes: `mvn -B verify > target/mvn-out.txt 2>&1; tail -n 20 target/mvn-out.txt`
 Expected: BUILD SUCCESS.
