@@ -510,6 +510,11 @@ git commit -m "feat: wire Kafka via spring-kafka with Testcontainers verificatio
 
 ### Task 5: Axon Framework 5 event store on MySQL (the riskiest wiring)
 
+> **SUPERSEDED (2026-07-24):** Axon was replaced by the DIY event-sourcing kernel before this task
+> was ever built. Do not execute this task. See
+> `docs/superpowers/specs/2026-07-24-diy-event-sourcing-design.md` and
+> `docs/superpowers/plans/2026-07-24-diy-event-sourcing-kernel.md`.
+
 **Files:**
 - Modify: `pom.xml` (Axon 5 starter, Axon Server excluded/disabled)
 - Modify: `src/main/resources/application.yml` (`axon.axonserver.enabled=false`)
