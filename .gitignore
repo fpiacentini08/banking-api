@@ -1,0 +1,16 @@
+# IDE / tooling
+.idea/
+.claude/
+
+# Maven build output
+target/
+
+# Java
+*.class
+*.jar
+*.war
+hs_err_pid*
+
+# OS
+.DS_Store
+Thumbs.db
