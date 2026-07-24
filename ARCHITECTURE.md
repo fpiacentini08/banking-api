@@ -34,7 +34,7 @@ flowchart LR
     api -->|publish/consume events| kafka[[Kafka]]
 ```
 
-- **MySQL** holds both the Axon event store (truth) and the projection tables (read models).
+- **MySQL** holds both the event store (truth) and the projection tables (read models).
 - **Redis** caches balances and stores idempotency keys.
 - **Kafka** is the event-distribution bus, not an event store.
 
@@ -50,7 +50,7 @@ application         command gateway, query services, transaction-status service 
 domain              aggregates, value objects, domain events, invariants   ← centre
         ▲  (implemented by)
         │
-outbound adapters  Axon event store (MySQL/JPA), projection repositories (MySQL),
+outbound adapters  JDBC event store (MySQL), projection repositories (MySQL),
                    Redis cache, Kafka publisher/consumer
 ```
 
@@ -62,10 +62,11 @@ ports.
 
 ```
 com.example.banking
-├── domain                  # pure domain + Axon aggregate/saga annotations only
+├── eventsourcing           # DIY kernel: ports + pure logic (Vavr only, no infrastructure)
+├── domain                  # pure domain — implements kernel interfaces, zero framework imports
 │   ├── user                #   User aggregate, events
 │   ├── account             #   Account aggregate, events, invariants
-│   ├── transfer            #   Transfer saga
+│   ├── transfer            #   Transfer saga (pure state machine)
 │   └── shared              #   Money, identifiers, DomainError (value objects)
 ├── application             # command/query gateways, ports (interfaces)
 │   ├── command
@@ -73,15 +74,15 @@ com.example.banking
 └── adapter
     ├── in.web              # REST controllers, DTOs, error mapping
     └── out
-        ├── eventstore      # Axon storage-engine config (MySQL)
-        ├── projection      # JPA projection entities + repositories, event processors
+        ├── eventstore      # JDBC event store, snapshots, tokens, sagas, deadlines, serialization
+        ├── projection      # JPA projection entities + repositories, tracking processors
         ├── cache           # Redis
-        └── messaging       # Kafka publisher/consumer (Axon extension-kafka)
+        └── messaging       # Kafka relay processor (spring-kafka)
 ```
 
-Axon annotations (`@Aggregate`, `@CommandHandler`, `@EventSourcingHandler`, saga handlers) are the one
-permitted framework touchpoint inside `domain` — idiomatic for Axon. All other infrastructure stays in
-`adapter`.
+The domain has **no framework touchpoint at all**: aggregates implement the kernel's pure
+`AggregateBehaviour` (decide/evolve) interface and sagas implement `SagaBehaviour` — plain Java
+against a dependency-free kernel package. All infrastructure stays in `adapter`.
 
 ## Write model (command side)
 
@@ -89,7 +90,7 @@ permitted framework touchpoint inside `domain` — idiomatic for Axon. All other
 sequenceDiagram
     participant C as Client
     participant Ctl as REST Controller
-    participant GW as Axon CommandGateway
+    participant GW as CommandBus (striped)
     participant Agg as Aggregate
     participant ES as Event Store (MySQL)
     participant K as Kafka
@@ -118,8 +119,10 @@ flowchart LR
     R --> Q
 ```
 
-Event processors consume events and maintain projections in MySQL; the balance projection is cached in
-Redis. Query endpoints read only from projections — never from the event store.
+Kernel tracking processors poll the event store with persisted tokens, maintain projections in
+MySQL (token + projection updated in one transaction), and can be reset to rebuild a projection
+from the start of the stream. The balance projection is cached in Redis. Query endpoints read only
+from projections — never from the event store.
 
 ## Aggregates and events
 
@@ -152,18 +155,20 @@ stateDiagram-v2
 
 ## Event distribution (Kafka)
 
-Domain events are relayed to Kafka by an Axon event handler using `spring-kafka`, forming the
-event-driven backbone and the seam for a future real external-bank integration. Kafka carries events
-outward; it is explicitly not the event store. (The Axon `extension-kafka` has no Axon 5 release, so
-`spring-kafka` is used directly rather than the Axon-specific bridge.)
+Domain events are relayed to Kafka by a dedicated kernel tracking processor using `spring-kafka`,
+forming the event-driven backbone and the seam for a future real external-bank integration. Kafka
+carries events outward; it is explicitly not the event store. Delivery is at-least-once; consumers
+deduplicate on `event_id`.
 
 ## Idempotency and concurrency
 
 - **Idempotency** — the client's `Idempotency-Key` is used as the `TransactionId`. Replays return the
   original transaction status and produce no second movement. Keys are tracked in Redis (TTL) and
   backed by a unique constraint in the `transaction_status` projection.
-- **Concurrency** — Axon aggregate optimistic locking (event sequence numbers) serializes concurrent
-  commands on the same account. Conflicts are retried; exhausted retries surface as `409 Conflict`.
+- **Concurrency** — optimistic locking via the event store's unique `(aggregate_id, sequence_nr)`
+  key serializes concurrent commands on the same account; the command bus additionally routes
+  same-aggregate commands onto one executor stripe. Conflicts are retried (3 attempts); exhausted
+  retries surface as `409 Conflict`.
 
 ## Cross-cutting concerns
 
@@ -171,12 +176,17 @@ outward; it is explicitly not the event store. (The Axon `extension-kafka` has n
   `problem+json`. Asynchronous transfer failures surface as a transaction status (`REJECTED` /
   `FAILED`) with a reason, not as an HTTP error on the original request.
 - **Observability** — Spring Boot Actuator plus Micrometer / OpenTelemetry.
-- **Schema** — Flyway manages projection schemas; the Axon event-store schema is created by
-  Axon / Hibernate.
+- **Schema** — Flyway manages all schemas: projections and the kernel tables (event store,
+  snapshots, tracking tokens, sagas, deadlines).
 
-## Architectural rules (enforced by ArchUnit)
+## Architectural rules (enforced by the DIY ArchCheck test)
 
-- `domain` must not depend on `adapter` or on web/persistence/Redis/Kafka packages.
+A hand-built checker on the JDK ClassFile API (`java.lang.classfile` — no ArchUnit, which is
+incompatible with the Java version in use) scans compiled classes and enforces:
+
+- `eventsourcing` (the kernel) must depend only on itself, Vavr, and `java.` — no infrastructure.
+- `domain` must depend only on itself, `eventsourcing`, Vavr, and `java.` — no `adapter`, no
+  web/persistence/Redis/Kafka packages.
 - `adapter.in.web` must not reference aggregates directly — only application gateways/services.
 - Value objects and events must be immutable.
 
@@ -185,15 +195,17 @@ outward; it is explicitly not the event store. (The Axon `extension-kafka` has n
 | Concern | Technology |
 | --- | --- |
 | Runtime / framework | Java 26, Spring Boot 4.1 (Spring Framework 7) |
-| ES / CQRS / sagas | Axon Framework 5 |
-| Event store | MySQL 9.7 (Axon `EmbeddedEventStore`, JPA/JDBC engine) |
-| Event bus | Apache Kafka via `spring-kafka` (Axon event-handler relay) |
+| ES / CQRS / sagas | DIY event-sourcing kernel (`com.example.banking.eventsourcing`, see the [design spec](docs/superpowers/specs/2026-07-24-diy-event-sourcing-design.md)) |
+| Event store | MySQL 9.7 (JDBC, Flyway-managed schema) |
+| Event bus | Apache Kafka via `spring-kafka` (kernel tracking-processor relay) |
 | Read models | MySQL 9.7 (Spring Data JPA) |
 | Cache / idempotency | Redis 8.8 (Spring Data Redis) |
 | Migrations | Flyway |
 | Functional | Vavr |
+| Serialization | Jackson 3 (`tools.jackson`) — in the adapter only |
 | API / validation | Spring Web MVC, springdoc-openapi, Jakarta Bean Validation |
-| Testing | JUnit 5, Axon test fixtures, ArchUnit, Testcontainers, AssertJ |
+| Testing | JUnit 5, kernel GWT fixtures, DIY `ArchCheck` (JDK ClassFile API), Testcontainers, AssertJ |
 
-See the design specification for compatibility notes (Java 26 vs the Java 25 support line, Axon 4
-end-of-life, `extension-kafka` on Axon 5).
+Event sourcing, CQRS, and sagas are provided by the hand-built kernel rather than a framework;
+see [`docs/superpowers/specs/2026-07-24-diy-event-sourcing-design.md`](docs/superpowers/specs/2026-07-24-diy-event-sourcing-design.md)
+for its design and the rationale for replacing Axon.
