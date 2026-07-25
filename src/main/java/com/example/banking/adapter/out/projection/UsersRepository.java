@@ -1,5 +1,7 @@
 package com.example.banking.adapter.out.projection;
 
+import com.example.banking.application.UserDirectory;
+import com.example.banking.domain.user.UserId;
 import org.jooq.DSLContext;
 
 import java.time.Instant;
@@ -10,7 +12,7 @@ import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.table;
 
 /** The only class that reads/writes the users read model. jOOQ DSL-only. */
-public final class UsersRepository {
+public final class UsersRepository implements UserDirectory {
 
     private final DSLContext dsl;
 
@@ -28,5 +30,10 @@ public final class UsersRepository {
                 .set(field("email"), email)
                 .set(field("registered_at"), ts)
                 .execute();
+    }
+
+    @Override
+    public boolean exists(UserId userId) {
+        return dsl.fetchExists(table("users"), field("user_id").eq(userId.value()));
     }
 }
