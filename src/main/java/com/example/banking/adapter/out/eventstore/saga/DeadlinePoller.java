@@ -1,25 +1,20 @@
 package com.example.banking.adapter.out.eventstore.saga;
 
+import com.example.banking.adapter.out.eventstore.saga.DeadlineRepository.DueDeadline;
 import com.example.banking.eventsourcing.event.EventTypeRegistry;
 import com.example.banking.eventsourcing.common.PayloadCodec;
 import com.example.banking.eventsourcing.saga.SagaManager;
 import com.example.banking.eventsourcing.common.TransactionalRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** Delivers due deadlines to their saga manager and deletes them, one transaction per poll. */
 public final class DeadlinePoller {
 
-    private record DueDeadline(String deadlineId, String sagaType, String sagaId,
-                               String payloadType, String payload) {}
-
-    private final JdbcTemplate jdbc;
+    private final DeadlineRepository deadlines;
     private final TransactionalRunner tx;
     private final PayloadCodec codec;
     private final EventTypeRegistry registry;
@@ -29,10 +24,10 @@ public final class DeadlinePoller {
     private volatile boolean running;
     private Thread loop;
 
-    public DeadlinePoller(JdbcTemplate jdbc, TransactionalRunner tx, PayloadCodec codec,
+    public DeadlinePoller(DeadlineRepository deadlines, TransactionalRunner tx, PayloadCodec codec,
                           EventTypeRegistry registry, Map<String, SagaManager<?>> managersBySagaType,
                           Clock clock, Duration pollInterval) {
-        this.jdbc = jdbc;
+        this.deadlines = deadlines;
         this.tx = tx;
         this.codec = codec;
         this.registry = registry;
@@ -45,21 +40,14 @@ public final class DeadlinePoller {
     public int pollOnce() {
         AtomicInteger delivered = new AtomicInteger();
         tx.inTransaction(() -> {
-            List<DueDeadline> due = jdbc.query("""
-                            SELECT deadline_id, saga_type, saga_id, payload_type, payload
-                            FROM deadline WHERE due_at <= ?
-                            ORDER BY due_at LIMIT 100 FOR UPDATE""",
-                    (rs, rowNum) -> new DueDeadline(rs.getString("deadline_id"), rs.getString("saga_type"),
-                            rs.getString("saga_id"), rs.getString("payload_type"), rs.getString("payload")),
-                    Timestamp.from(clock.instant()));
-            for (DueDeadline deadline : due) {
+            for (DueDeadline deadline : deadlines.findDue(clock.instant(), 100)) {
                 SagaManager<?> manager = managersBySagaType.get(deadline.sagaType());
                 if (manager != null) {
                     Object payload = codec.decode(deadline.payload(),
                             registry.byName(deadline.payloadType()).type());
                     manager.handleDeadline(deadline.sagaId(), payload);
                 }
-                jdbc.update("DELETE FROM deadline WHERE deadline_id = ?", deadline.deadlineId());
+                deadlines.delete(deadline.deadlineId());
                 delivered.incrementAndGet();
             }
         });

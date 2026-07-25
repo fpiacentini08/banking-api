@@ -1,10 +1,11 @@
 package com.example.banking.infra;
 
 import com.example.banking.adapter.out.eventstore.saga.DeadlinePoller;
+import com.example.banking.adapter.out.eventstore.saga.DeadlineRepository;
 import com.example.banking.adapter.out.eventstore.serialization.JacksonEventSerializer;
 import com.example.banking.adapter.out.eventstore.serialization.JacksonPayloadCodec;
-import com.example.banking.adapter.out.eventstore.saga.JdbcDeadlineScheduler;
-import com.example.banking.adapter.out.eventstore.saga.JdbcSagaStore;
+import com.example.banking.adapter.out.eventstore.saga.JooqDeadlineScheduler;
+import com.example.banking.adapter.out.eventstore.saga.JooqSagaStore;
 import com.example.banking.adapter.out.eventstore.store.SpringTransactionalRunner;
 import com.example.banking.adapter.out.eventstore.serialization.UpcasterChain;
 import com.example.banking.eventsourcing.command.CommandBus;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.jooq.DSLContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -47,14 +49,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DeadlineTest {
 
     @Autowired JdbcTemplate jdbc;
+    @Autowired DSLContext dsl;
     @Autowired PlatformTransactionManager txManager;
 
     Clock clock = Clock.fixed(Instant.parse("2026-07-24T10:00:00Z"), ZoneOffset.UTC);
     PayloadCodec codec;
     EventTypeRegistry registry;
-    JdbcDeadlineScheduler scheduler;
+    JooqDeadlineScheduler scheduler;
     DeadlinePoller poller;
-    JdbcSagaStore sagaStore;
+    JooqSagaStore sagaStore;
     List<Object> dispatched;
 
     @BeforeEach
@@ -66,8 +69,8 @@ class DeadlineTest {
         codec = new JacksonPayloadCodec(mapper);
         registry = new EventTypeRegistry();
         registry.register("TimedOut", 1, TimedOut.class);
-        scheduler = new JdbcDeadlineScheduler(jdbc, codec, registry, clock);
-        sagaStore = new JdbcSagaStore(jdbc);
+        scheduler = new JooqDeadlineScheduler(dsl, codec, registry, clock);
+        sagaStore = new JooqSagaStore(dsl);
         dispatched = new CopyOnWriteArrayList<>();
         CommandBus recordingBus = new CommandBus() {
             @Override public <C> void register(Class<C> type, Function<C, String> idOf, CommandHandler<C> handler) {}
@@ -80,7 +83,8 @@ class DeadlineTest {
                 sagaStore, codec, TransferLikeSaga.State.class,
                 new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), clock),
                 recordingBus, scheduler);
-        poller = new DeadlinePoller(jdbc, new SpringTransactionalRunner(new TransactionTemplate(txManager)),
+        poller = new DeadlinePoller(new DeadlineRepository(dsl),
+                new SpringTransactionalRunner(new TransactionTemplate(txManager)),
                 codec, registry, Map.of("TransferLike", manager), clock, Duration.ofMillis(50));
     }
 

@@ -1,7 +1,7 @@
 package com.example.banking.adapter.out.eventstore.config;
 
-import com.example.banking.adapter.out.eventstore.saga.JdbcDeadlineScheduler;
-import com.example.banking.adapter.out.eventstore.saga.JdbcSagaStore;
+import com.example.banking.adapter.out.eventstore.saga.JooqDeadlineScheduler;
+import com.example.banking.adapter.out.eventstore.saga.JooqSagaStore;
 import com.example.banking.adapter.out.eventstore.processor.JooqTokenStore;
 import com.example.banking.adapter.out.eventstore.serialization.JacksonEventSerializer;
 import com.example.banking.adapter.out.eventstore.serialization.JacksonPayloadCodec;
@@ -25,7 +25,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.jooq.DSLContext;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
@@ -84,8 +83,8 @@ public class EventSourcingConfig {
     }
 
     @Bean
-    SagaStore sagaStore(JdbcTemplate jdbc) {
-        return new JdbcSagaStore(jdbc);
+    SagaStore sagaStore(DSLContext dsl) {
+        return new JooqSagaStore(dsl);
     }
 
     @Bean(destroyMethod = "close")
@@ -94,8 +93,8 @@ public class EventSourcingConfig {
     }
 
     @Bean
-    DeadlineScheduler deadlineScheduler(JdbcTemplate jdbc, PayloadCodec codec,
+    DeadlineScheduler deadlineScheduler(DSLContext dsl, PayloadCodec codec,
                                         EventTypeRegistry registry, Clock kernelClock) {
-        return new JdbcDeadlineScheduler(jdbc, codec, registry, kernelClock);
+        return new JooqDeadlineScheduler(dsl, codec, registry, kernelClock);
     }
 }

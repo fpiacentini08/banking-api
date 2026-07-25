@@ -1,6 +1,7 @@
 package com.example.banking.infra;
 
 import com.example.banking.adapter.out.eventstore.store.JooqEventStore;
+import com.example.banking.adapter.out.eventstore.processor.SegmentTokenRepository;
 import com.example.banking.adapter.out.eventstore.processor.SegmentedEventProcessor;
 import com.example.banking.adapter.out.eventstore.store.SpringTransactionalRunner;
 import com.example.banking.eventsourcing.processor.EventHandler;
@@ -103,7 +104,7 @@ class SegmentedProcessingSpikeTest {
         int workers = 4;
         List<SegmentedEventProcessor> procs = new ArrayList<>();
         for (int i = 0; i < workers; i++) {
-            procs.add(new SegmentedEventProcessor(jdbc, tx, "spike-proj", 10, handler));
+            procs.add(new SegmentedEventProcessor(new SegmentTokenRepository(dsl), tx, "spike-proj", 10, handler));
         }
         procs.get(0).ensureSegments();
 
