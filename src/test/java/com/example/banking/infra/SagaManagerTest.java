@@ -2,7 +2,7 @@ package com.example.banking.infra;
 
 import com.example.banking.adapter.out.eventstore.serialization.JacksonEventSerializer;
 import com.example.banking.adapter.out.eventstore.serialization.JacksonPayloadCodec;
-import com.example.banking.adapter.out.eventstore.saga.JdbcSagaStore;
+import com.example.banking.adapter.out.eventstore.saga.JooqSagaStore;
 import com.example.banking.adapter.out.eventstore.serialization.UpcasterChain;
 import com.example.banking.eventsourcing.command.CommandBus;
 import com.example.banking.eventsourcing.command.CommandHandler;
@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.jooq.DSLContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.ObjectMapper;
 
@@ -42,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SagaManagerTest {
 
     @Autowired JdbcTemplate jdbc;
+    @Autowired DSLContext dsl;
 
     SagaStore sagaStore;
     SagaManager<TransferLikeSaga.State> manager;
@@ -76,7 +78,7 @@ class SagaManagerTest {
             }
             @Override public void cancel(String deadlineId) { cancelled.add(deadlineId); }
         };
-        sagaStore = new JdbcSagaStore(jdbc);
+        sagaStore = new JooqSagaStore(dsl);
         manager = new SagaManager<>(new TransferLikeSaga(), sagaStore, new JacksonPayloadCodec(mapper),
                 TransferLikeSaga.State.class, serializer, recordingBus, recordingDeadlines);
     }

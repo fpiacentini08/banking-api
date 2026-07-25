@@ -12,7 +12,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @FullContextTest
-class JdbcTransactionStatusStoreTest {
+class JooqTransactionStatusStoreTest {
 
     @Autowired TransactionStatusStore store;
 

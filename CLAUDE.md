@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Current state — read this first
 
 The walking skeleton (Milestone 0) is built and green, and the **DIY event-sourcing kernel** that
-replaces Axon Framework is implemented in `com.example.banking.eventsourcing` (+ JDBC adapters in
+replaces Axon Framework is implemented in `com.example.banking.eventsourcing` (+ jOOQ adapters in
 `adapter.out.eventstore`). The build runs on Java 26 with Spring Boot 4.1. Read the design before
 extending it.
 
@@ -59,7 +59,7 @@ adapter.in.web   REST controllers (Spring MVC), DTOs, RFC 7807 problem+json mapp
 application      command gateway, query services, transaction-status service = ports  (uses)
 domain           aggregates, value objects, domain events, invariants                 (centre)
 eventsourcing    DIY ES/CQRS kernel: ports + pure logic (Vavr only, no infrastructure)
-adapter.out      JDBC event store (MySQL), projection repos (MySQL), Redis, Kafka      (implements)
+adapter.out      jOOQ event store (MySQL), projection repos (MySQL), Redis, Kafka      (implements)
 ```
 
 Base Java package: `com.example.banking`. Target package tree is in `ARCHITECTURE.md` §"Package
@@ -76,7 +76,7 @@ and build MySQL projections (`account_balance`, `movements`, `transaction_status
 projection is cached in Redis. Query endpoints read **only** from projections — never from the event
 store.
 
-**Event store vs bus:** MySQL (kernel JDBC store) is the **source of truth** for events.
+**Event store vs bus:** MySQL (kernel jOOQ store) is the **source of truth** for events.
 Kafka is a **distribution bus only**, not an event store — a kernel tracking processor relays domain
 events to Kafka via plain `spring-kafka`. Balance is a fold over an account's events, reconstructed by
 replay.
@@ -91,10 +91,11 @@ per DDD's one-aggregate-per-transaction rule.
 
 - **The domain is 100 % pure.** Aggregates and sagas implement the kernel's `AggregateBehaviour`
   (pure `decide`/`evolve`) and `SagaBehaviour` interfaces (`com.example.banking.eventsourcing` —
-  plain Java + Vavr, no annotations, no reflection, no framework). *All* infrastructure (JPA, Redis,
+  plain Java + Vavr, no annotations, no reflection, no framework). *All* infrastructure (jOOQ, Redis,
   Kafka, web, Jackson) stays in `adapter`. The DIY `ArchCheck` test (JDK ClassFile API, **no
   ArchUnit**) enforces: `eventsourcing` depends only on itself + Vavr + `java.`; `domain` depends
   only on itself + `eventsourcing` + Vavr + `java.`; value objects and events are immutable.
+- **Database access is jOOQ-only, in a Repository.** All SQL goes through the jOOQ `DSLContext` inside a dedicated `adapter.out.*` Repository class; projections/services/controllers never touch the DB directly — they depend on a Repository. jOOQ is **DSL-only** (string-based `DSL.table`/`DSL.field`, no code generation). Flyway still owns all DDL; jOOQ is DML only. The kernel (`eventsourcing`) stays jOOQ-free.
 - **Money is never floating point.** Integer minor units (cents) as `long`, currency fixed to EUR.
   The API exposes a decimal string; internal maths is integer.
 - **Functional error handling.** Business-rule outcomes are Vavr `Either<DomainError, Result>`, not
@@ -109,6 +110,7 @@ per DDD's one-aggregate-per-transaction rule.
   executor stripe); exhausted retries surface as `409 Conflict`.
 - **Ownership, not auth:** caller identity arrives in `X-User-Id`; there is no login. Wrong owner is
   `403`.
+- **Sensitive data is plaintext (out of scope for now).** Name, email, and event payloads are not encrypted/masked; secure storage is deferred to a future milestone.
 
 ## Bleeding-edge stack risks (decided at build time, not guessed)
 
@@ -125,6 +127,10 @@ The stack is intentionally past the certified line; resolve these at build time,
 - **Jackson 3** (`tools.jackson`, the Spring Boot 4.1 default) — Jackson serialization lives only in
   `adapter.out.eventstore`; its exceptions are unchecked.
 - **Kafka uses `spring-kafka` directly** as a distribution bus.
+- **jOOQ is DSL-only** — jOOQ 3.21.5 (Boot-managed by `spring-boot-starter-jooq`) resolves and runs on
+  Java 26 with dialect `MYSQL` confirmed effective at runtime. **No code generation:** a build-time
+  codegen tool on Java 26 is the same risk class that broke ArchUnit and Axon, so all SQL is written
+  against the string-based DSL (`DSL.table` / `DSL.field`) and Flyway keeps owning DDL.
 - Community/tool versions (`testcontainers-redis`, Vavr) may be stale — resolve current versions if so.
 
 When a bleeding-edge deviation is made (library version, API rename), **write it into the commit

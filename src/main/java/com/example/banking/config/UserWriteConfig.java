@@ -2,6 +2,7 @@ package com.example.banking.config;
 
 import com.example.banking.adapter.out.eventstore.config.EventSourcingProperties;
 import com.example.banking.adapter.out.projection.UsersProjection;
+import com.example.banking.adapter.out.projection.UsersRepository;
 import com.example.banking.domain.user.RegisterUser;
 import com.example.banking.domain.user.User;
 import com.example.banking.domain.user.UserBehaviour;
@@ -18,10 +19,10 @@ import com.example.banking.eventsourcing.event.EventTypeRegistry;
 import com.example.banking.eventsourcing.processor.TokenStore;
 import com.example.banking.eventsourcing.processor.TrackingProcessor;
 import com.example.banking.eventsourcing.snapshot.SnapshotStore;
+import org.jooq.DSLContext;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Wires the User write path onto the event-sourcing kernel: event-type registration, the User
@@ -55,10 +56,15 @@ public class UserWriteConfig {
     }
 
     @Bean
+    UsersRepository usersRepository(DSLContext dsl) {
+        return new UsersRepository(dsl);
+    }
+
+    @Bean
     TrackingProcessor usersProjectionProcessor(
             EventStore eventStore, TokenStore tokenStore, TransactionalRunner tx,
-            EventSerializer eventSerializer, JdbcTemplate jdbc, EventSourcingProperties properties) {
-        UsersProjection projection = new UsersProjection(jdbc, eventSerializer);
+            EventSerializer eventSerializer, UsersRepository usersRepository, EventSourcingProperties properties) {
+        UsersProjection projection = new UsersProjection(usersRepository, eventSerializer);
         return new TrackingProcessor(USERS_PROCESSOR, eventStore, tokenStore, tx, projection,
                 properties.batchSize(), properties.pollInterval());
     }

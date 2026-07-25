@@ -1,13 +1,13 @@
 package com.example.banking.adapter.out.eventstore.config;
 
-import com.example.banking.adapter.out.eventstore.saga.JdbcDeadlineScheduler;
-import com.example.banking.adapter.out.eventstore.saga.JdbcSagaStore;
-import com.example.banking.adapter.out.eventstore.processor.JdbcTokenStore;
+import com.example.banking.adapter.out.eventstore.saga.JooqDeadlineScheduler;
+import com.example.banking.adapter.out.eventstore.saga.JooqSagaStore;
+import com.example.banking.adapter.out.eventstore.processor.JooqTokenStore;
 import com.example.banking.adapter.out.eventstore.serialization.JacksonEventSerializer;
 import com.example.banking.adapter.out.eventstore.serialization.JacksonPayloadCodec;
 import com.example.banking.adapter.out.eventstore.serialization.UpcasterChain;
-import com.example.banking.adapter.out.eventstore.snapshot.JdbcSnapshotStore;
-import com.example.banking.adapter.out.eventstore.store.JdbcEventStore;
+import com.example.banking.adapter.out.eventstore.snapshot.JooqSnapshotStore;
+import com.example.banking.adapter.out.eventstore.store.JooqEventStore;
 import com.example.banking.adapter.out.eventstore.store.SpringTransactionalRunner;
 
 import com.example.banking.eventsourcing.command.CommandBus;
@@ -24,7 +24,7 @@ import com.example.banking.eventsourcing.common.TransactionalRunner;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.jooq.DSLContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
@@ -68,23 +68,23 @@ public class EventSourcingConfig {
     }
 
     @Bean
-    EventStore eventStore(JdbcTemplate jdbc, TransactionalRunner tx) {
-        return new JdbcEventStore(jdbc, tx);
+    EventStore eventStore(DSLContext dsl, TransactionalRunner tx) {
+        return new JooqEventStore(dsl, tx);
     }
 
     @Bean
-    SnapshotStore snapshotStore(JdbcTemplate jdbc) {
-        return new JdbcSnapshotStore(jdbc);
+    SnapshotStore snapshotStore(DSLContext dsl) {
+        return new JooqSnapshotStore(dsl);
     }
 
     @Bean
-    TokenStore tokenStore(JdbcTemplate jdbc) {
-        return new JdbcTokenStore(jdbc);
+    TokenStore tokenStore(DSLContext dsl) {
+        return new JooqTokenStore(dsl);
     }
 
     @Bean
-    SagaStore sagaStore(JdbcTemplate jdbc) {
-        return new JdbcSagaStore(jdbc);
+    SagaStore sagaStore(DSLContext dsl) {
+        return new JooqSagaStore(dsl);
     }
 
     @Bean(destroyMethod = "close")
@@ -93,8 +93,8 @@ public class EventSourcingConfig {
     }
 
     @Bean
-    DeadlineScheduler deadlineScheduler(JdbcTemplate jdbc, PayloadCodec codec,
+    DeadlineScheduler deadlineScheduler(DSLContext dsl, PayloadCodec codec,
                                         EventTypeRegistry registry, Clock kernelClock) {
-        return new JdbcDeadlineScheduler(jdbc, codec, registry, kernelClock);
+        return new JooqDeadlineScheduler(dsl, codec, registry, kernelClock);
     }
 }

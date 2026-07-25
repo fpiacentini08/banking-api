@@ -8,10 +8,8 @@ spring:
     url: jdbc:mysql://${DB_HOST:localhost}:3306/banking
     username: root
     password: root
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
+  jooq:
+    sql-dialect: MYSQL
   flyway:
     enabled: true
   data:

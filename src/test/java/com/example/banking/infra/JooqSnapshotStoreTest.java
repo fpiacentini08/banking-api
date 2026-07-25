@@ -1,8 +1,9 @@
 package com.example.banking.infra;
 
-import com.example.banking.adapter.out.eventstore.snapshot.JdbcSnapshotStore;
+import com.example.banking.adapter.out.eventstore.snapshot.JooqSnapshotStore;
 import com.example.banking.eventsourcing.snapshot.Snapshot;
 import com.example.banking.eventsourcing.snapshot.SnapshotStore;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,15 +15,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Import(ContainersConfig.class)
-class JdbcSnapshotStoreTest {
+class JooqSnapshotStoreTest {
 
     @Autowired JdbcTemplate jdbc;
+    @Autowired DSLContext dsl;
 
     SnapshotStore store;
 
     @BeforeEach
     void setUp() {
-        store = new JdbcSnapshotStore(jdbc);
+        store = new JooqSnapshotStore(dsl);
         jdbc.update("DELETE FROM snapshot");
     }
 
