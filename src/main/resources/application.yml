@@ -12,6 +12,8 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  jooq:
+    sql-dialect: MYSQL
   flyway:
     enabled: true
   data:

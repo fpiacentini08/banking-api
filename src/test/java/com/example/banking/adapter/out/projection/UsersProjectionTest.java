@@ -15,6 +15,7 @@ import com.example.banking.eventsourcing.event.SerializedEvent;
 import com.example.banking.eventsourcing.processor.TokenStore;
 import com.example.banking.eventsourcing.processor.TrackingProcessor;
 import com.example.banking.infra.FullContextTest;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -34,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UsersProjectionTest {
 
     @Autowired JdbcTemplate jdbc;
+    @Autowired DSLContext dsl;
     @Autowired PlatformTransactionManager txManager;
     @Autowired ObjectMapper mapper;
 
@@ -53,7 +55,7 @@ class UsersProjectionTest {
                 serializer.serialize(new UserRegistered(id, "Ada Lovelace", "ada@example.com"), Map.of());
         eventStore.append("User", id.value(), -1, List.of(event));
 
-        UsersProjection projection = new UsersProjection(jdbc, serializer);
+        UsersProjection projection = new UsersProjection(new UsersRepository(dsl), serializer);
         TrackingProcessor processor = new TrackingProcessor(
                 "users-projection-test", eventStore, tokenStore, tx, projection, 1000, Duration.ofMillis(50));
         int applied;
