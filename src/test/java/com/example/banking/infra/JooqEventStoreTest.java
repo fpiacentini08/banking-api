@@ -1,11 +1,12 @@
 package com.example.banking.infra;
 
-import com.example.banking.adapter.out.eventstore.store.JdbcEventStore;
+import com.example.banking.adapter.out.eventstore.store.JooqEventStore;
 import com.example.banking.adapter.out.eventstore.store.SpringTransactionalRunner;
 import com.example.banking.eventsourcing.event.ConcurrencyConflict;
 import com.example.banking.eventsourcing.event.EventStore;
 import com.example.banking.eventsourcing.event.SerializedEvent;
 import com.example.banking.eventsourcing.event.StoredEvent;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,16 +25,17 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 @SpringBootTest
 @Import(ContainersConfig.class)
-class JdbcEventStoreTest {
+class JooqEventStoreTest {
 
     @Autowired JdbcTemplate jdbc;
+    @Autowired DSLContext dsl;
     @Autowired PlatformTransactionManager txManager;
 
     EventStore store;
 
     @BeforeEach
     void setUp() {
-        store = new JdbcEventStore(jdbc, new SpringTransactionalRunner(new TransactionTemplate(txManager)));
+        store = new JooqEventStore(dsl, new SpringTransactionalRunner(new TransactionTemplate(txManager)));
         jdbc.update("DELETE FROM domain_event");
         jdbc.update("UPDATE event_store_sequence SET next_position = 1");
     }

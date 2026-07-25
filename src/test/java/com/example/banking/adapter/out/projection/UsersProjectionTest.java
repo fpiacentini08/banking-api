@@ -1,9 +1,9 @@
 package com.example.banking.adapter.out.projection;
 
-import com.example.banking.adapter.out.eventstore.processor.JdbcTokenStore;
+import com.example.banking.adapter.out.eventstore.processor.JooqTokenStore;
 import com.example.banking.adapter.out.eventstore.serialization.JacksonEventSerializer;
 import com.example.banking.adapter.out.eventstore.serialization.UpcasterChain;
-import com.example.banking.adapter.out.eventstore.store.JdbcEventStore;
+import com.example.banking.adapter.out.eventstore.store.JooqEventStore;
 import com.example.banking.adapter.out.eventstore.store.SpringTransactionalRunner;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.domain.user.UserRegistered;
@@ -42,8 +42,8 @@ class UsersProjectionTest {
     @Test
     void projectsUserRegisteredIntoUsersRow() {
         TransactionalRunner tx = new SpringTransactionalRunner(new TransactionTemplate(txManager));
-        EventStore eventStore = new JdbcEventStore(jdbc, tx);
-        TokenStore tokenStore = new JdbcTokenStore(jdbc);
+        EventStore eventStore = new JooqEventStore(dsl, tx);
+        TokenStore tokenStore = new JooqTokenStore(dsl);
 
         EventTypeRegistry registry = new EventTypeRegistry();
         registry.register("UserRegistered", 1, UserRegistered.class);

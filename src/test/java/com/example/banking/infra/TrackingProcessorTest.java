@@ -1,7 +1,7 @@
 package com.example.banking.infra;
 
-import com.example.banking.adapter.out.eventstore.store.JdbcEventStore;
-import com.example.banking.adapter.out.eventstore.processor.JdbcTokenStore;
+import com.example.banking.adapter.out.eventstore.store.JooqEventStore;
+import com.example.banking.adapter.out.eventstore.processor.JooqTokenStore;
 import com.example.banking.adapter.out.eventstore.store.SpringTransactionalRunner;
 import com.example.banking.eventsourcing.event.EventStore;
 import com.example.banking.eventsourcing.event.SerializedEvent;
@@ -9,6 +9,7 @@ import com.example.banking.eventsourcing.event.StoredEvent;
 import com.example.banking.eventsourcing.processor.TokenStore;
 import com.example.banking.eventsourcing.processor.TrackingProcessor;
 import com.example.banking.eventsourcing.common.TransactionalRunner;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class TrackingProcessorTest {
 
     @Autowired JdbcTemplate jdbc;
+    @Autowired DSLContext dsl;
     @Autowired PlatformTransactionManager txManager;
 
     EventStore eventStore;
@@ -42,8 +44,8 @@ class TrackingProcessorTest {
     @BeforeEach
     void setUp() {
         tx = new SpringTransactionalRunner(new TransactionTemplate(txManager));
-        eventStore = new JdbcEventStore(jdbc, tx);
-        tokenStore = new JdbcTokenStore(jdbc);
+        eventStore = new JooqEventStore(dsl, tx);
+        tokenStore = new JooqTokenStore(dsl);
         seen = new CopyOnWriteArrayList<>();
         jdbc.update("DELETE FROM domain_event");
         jdbc.update("DELETE FROM tracking_token");
