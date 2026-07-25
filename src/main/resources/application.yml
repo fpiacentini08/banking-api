@@ -1,6 +1,9 @@
 spring:
   application:
     name: banking-api
+  mvc:
+    problemdetails:
+      enabled: true
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:3306/banking
     username: root
