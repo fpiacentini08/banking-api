@@ -28,6 +28,7 @@ a functional-programming bias.
 - Account closure or deletion.
 - Multi-currency and FX.
 - Real external-bank settlement (the external leg of deposits/withdrawals does not move money).
+- Sensitive-data secure storage — encryption at rest, PII protection (user name/email, event payloads), GDPR erasure.
 
 ## 3. Technology stack
 

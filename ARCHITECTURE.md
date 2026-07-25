@@ -74,8 +74,8 @@ com.example.banking
 └── adapter
     ├── in.web              # REST controllers, DTOs, error mapping
     └── out
-        ├── eventstore      # JDBC event store, snapshots, tokens, sagas, deadlines, serialization
-        ├── projection      # JPA projection entities + repositories, tracking processors
+        ├── eventstore      # jOOQ event store, snapshots, tokens, sagas, deadlines, serialization
+        ├── projection      # jOOQ projection repositories, tracking processors
         ├── cache           # Redis
         └── messaging       # Kafka relay processor (spring-kafka)
 ```
@@ -178,6 +178,7 @@ deduplicate on `event_id`.
 - **Observability** — Spring Boot Actuator plus Micrometer / OpenTelemetry.
 - **Schema** — Flyway manages all schemas: projections and the kernel tables (event store,
   snapshots, tracking tokens, sagas, deadlines).
+- **Sensitive data** — user name/email and event payloads are stored in plaintext; secure storage (encryption at rest, PII protection, GDPR erasure) is **out of scope for now**.
 
 ## Architectural rules (enforced by the DIY ArchCheck test)
 
@@ -188,6 +189,7 @@ incompatible with the Java version in use) scans compiled classes and enforces:
 - `domain` must depend only on itself, `eventsourcing`, Vavr, and `java.` — no `adapter`, no
   web/persistence/Redis/Kafka packages.
 - `adapter.in.web` must not reference aggregates directly — only application gateways/services.
+- No `domain`, `application`, or `adapter.in.web` class references `org.jooq` / `DSLContext` — all database access is confined to jOOQ Repository classes in `adapter.out.*`. (jOOQ DSL-only — no code generation.)
 - Value objects and events must be immutable.
 
 ## Technology mapping
@@ -196,9 +198,9 @@ incompatible with the Java version in use) scans compiled classes and enforces:
 | --- | --- |
 | Runtime / framework | Java 26, Spring Boot 4.1 (Spring Framework 7) |
 | ES / CQRS / sagas | DIY event-sourcing kernel (`com.example.banking.eventsourcing`, see the [design spec](docs/superpowers/specs/2026-07-24-diy-event-sourcing-design.md)) |
-| Event store | MySQL 9.7 (JDBC, Flyway-managed schema) |
+| Event store | MySQL 9.7 (jOOQ DSL, Flyway-managed schema) |
 | Event bus | Apache Kafka via `spring-kafka` (kernel tracking-processor relay) |
-| Read models | MySQL 9.7 (Spring Data JPA) |
+| Read models | MySQL 9.7 (jOOQ DSL) |
 | Cache / idempotency | Redis 8.8 (Spring Data Redis) |
 | Migrations | Flyway |
 | Functional | Vavr |
