@@ -33,6 +33,18 @@ class TransactionStatusControllerTest {
     }
 
     @Test
+    void pendingStatusOmitsResultUserIdAndReason() throws Exception {
+        String txId = UUID.randomUUID().toString();
+        store.insertPending(txId, "user-registration");
+
+        mockMvc.perform(get("/transactions/{id}", txId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.resultUserId").doesNotExist())
+                .andExpect(jsonPath("$.reason").doesNotExist());
+    }
+
+    @Test
     void returns404ForUnknownTransaction() throws Exception {
         mockMvc.perform(get("/transactions/{id}", UUID.randomUUID().toString()))
                 .andExpect(status().isNotFound());
