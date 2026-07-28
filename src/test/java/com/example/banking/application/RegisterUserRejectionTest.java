@@ -1,5 +1,6 @@
 package com.example.banking.application;
 
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.domain.user.RegisterUser;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.infra.FullContextTest;
@@ -21,13 +22,13 @@ class RegisterUserRejectionTest {
     void reRegistrationOfSameUserSettlesRejected() {
         UserId userId = new UserId(UUID.randomUUID().toString());
 
-        String firstTransaction = UUID.randomUUID().toString();
+        TransactionId firstTransaction = new TransactionId(UUID.randomUUID().toString());
         statusStore.insertPending(firstTransaction, "user-registration");
         gateway.submit(firstTransaction, new RegisterUser(userId, "Ada Lovelace", "ada@example.com"));
         await(() -> statusStore.find(firstTransaction)
                 .map(status -> status.state() == TransactionState.COMPLETED).orElse(false));
 
-        String secondTransaction = UUID.randomUUID().toString();
+        TransactionId secondTransaction = new TransactionId(UUID.randomUUID().toString());
         statusStore.insertPending(secondTransaction, "user-registration");
         gateway.submit(secondTransaction, new RegisterUser(userId, "Ada Again", "ada2@example.com"));
         await(() -> statusStore.find(secondTransaction)

@@ -4,7 +4,7 @@ import com.example.banking.application.TransactionAccepted;
 
 public record RegisterUserResponse(String transactionId, String status, String statusUrl) {
     static RegisterUserResponse from(TransactionAccepted accepted) {
-        return new RegisterUserResponse(accepted.transactionId(), "PENDING",
-                "/transactions/" + accepted.transactionId());
+        return new RegisterUserResponse(accepted.transactionId().value(), "PENDING",
+                "/transactions/" + accepted.transactionId().value());
     }
 }

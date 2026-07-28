@@ -1,3 +1,5 @@
 package com.example.banking.application;
 
-public record TransactionAccepted(String transactionId) {}
+import com.example.banking.domain.shared.TransactionId;
+
+public record TransactionAccepted(TransactionId transactionId) {}

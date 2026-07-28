@@ -4,7 +4,7 @@ import com.example.banking.application.AccountOpeningAccepted;
 
 public record OpenAccountResponse(String accountId, String status, String statusUrl) {
     static OpenAccountResponse from(AccountOpeningAccepted accepted) {
-        return new OpenAccountResponse(accepted.accountId(), "PENDING",
-                "/transactions/" + accepted.transactionId());
+        return new OpenAccountResponse(accepted.accountId().value(), "PENDING",
+                "/transactions/" + accepted.transactionId().value());
     }
 }

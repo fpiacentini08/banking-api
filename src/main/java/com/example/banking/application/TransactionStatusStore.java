@@ -1,13 +1,15 @@
 package com.example.banking.application;
 
+import com.example.banking.domain.shared.TransactionId;
+
 import java.util.Optional;
 
 /** Out-port for the transaction-status resource: one PENDING insert on accept, a monotonic
  *  terminal transition on outcome, and a read for the status endpoint. */
 public interface TransactionStatusStore {
-    void insertPending(String transactionId, String type);
-    void markCompleted(String transactionId, String resultUserId);
-    void markRejected(String transactionId, String reason);
-    void markFailed(String transactionId, String reason);
-    Optional<TransactionStatus> find(String transactionId);
+    void insertPending(TransactionId transactionId, String type);
+    void markCompleted(TransactionId transactionId, String resultUserId);
+    void markRejected(TransactionId transactionId, String reason);
+    void markFailed(TransactionId transactionId, String reason);
+    Optional<TransactionStatus> find(TransactionId transactionId);
 }

@@ -1,5 +1,6 @@
 package com.example.banking.application;
 
+import com.example.banking.domain.shared.TransactionId;
 import io.vavr.control.Either;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +14,7 @@ public class TransactionStatusQuery {
         this.store = store;
     }
 
-    public Either<ApplicationError, TransactionStatus> status(String transactionId) {
+    public Either<ApplicationError, TransactionStatus> status(TransactionId transactionId) {
         return store.find(transactionId)
                 .map(status -> Either.<ApplicationError, TransactionStatus>right(status))
                 .orElseGet(() -> Either.left(new ApplicationError.TransactionNotFound(transactionId)));

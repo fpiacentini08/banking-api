@@ -1,6 +1,7 @@
 package com.example.banking.adapter.in.web;
 
 import com.example.banking.application.TransactionStatusStore;
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.infra.FullContextTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,24 +21,24 @@ class TransactionStatusControllerTest {
 
     @Test
     void returnsStatusForKnownTransaction() throws Exception {
-        String txId = UUID.randomUUID().toString();
+        TransactionId txId = new TransactionId(UUID.randomUUID().toString());
         String userId = UUID.randomUUID().toString();
         store.insertPending(txId, "user-registration");
         store.markCompleted(txId, userId);
 
-        mockMvc.perform(get("/transactions/{id}", txId))
+        mockMvc.perform(get("/transactions/{id}", txId.value()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transactionId").value(txId))
+                .andExpect(jsonPath("$.transactionId").value(txId.value()))
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.resultUserId").value(userId));
     }
 
     @Test
     void pendingStatusOmitsResultUserIdAndReason() throws Exception {
-        String txId = UUID.randomUUID().toString();
+        TransactionId txId = new TransactionId(UUID.randomUUID().toString());
         store.insertPending(txId, "user-registration");
 
-        mockMvc.perform(get("/transactions/{id}", txId))
+        mockMvc.perform(get("/transactions/{id}", txId.value()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.resultUserId").doesNotExist())

@@ -2,6 +2,7 @@ package com.example.banking.application;
 
 import com.example.banking.domain.account.AccountId;
 import com.example.banking.domain.account.OpenAccount;
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.infra.FullContextTest;
 import org.junit.jupiter.api.Test;
@@ -23,13 +24,13 @@ class OpenAccountRejectionTest {
         AccountId accountId = new AccountId(UUID.randomUUID().toString());
         UserId ownerId = new UserId(UUID.randomUUID().toString());
 
-        String firstTransaction = UUID.randomUUID().toString();
+        TransactionId firstTransaction = new TransactionId(UUID.randomUUID().toString());
         statusStore.insertPending(firstTransaction, "account-opening");
         gateway.submit(firstTransaction, new OpenAccount(accountId, ownerId));
         await(() -> statusStore.find(firstTransaction)
                 .map(status -> status.state() == TransactionState.COMPLETED).orElse(false));
 
-        String secondTransaction = UUID.randomUUID().toString();
+        TransactionId secondTransaction = new TransactionId(UUID.randomUUID().toString());
         statusStore.insertPending(secondTransaction, "account-opening");
         gateway.submit(secondTransaction, new OpenAccount(accountId, ownerId));   // same accountId
         await(() -> statusStore.find(secondTransaction)

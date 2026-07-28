@@ -1,5 +1,6 @@
 package com.example.banking.application;
 
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.domain.user.RegisterUser;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.infra.FullContextTest;
@@ -22,7 +23,7 @@ class RegisterUserGatewayTest {
 
     @Test
     void dispatchedRegistrationCompletesAndProjectsUser() {
-        String transactionId = UUID.randomUUID().toString();
+        TransactionId transactionId = new TransactionId(UUID.randomUUID().toString());
         UserId userId = new UserId(UUID.randomUUID().toString());
         statusStore.insertPending(transactionId, "user-registration");
 

@@ -2,6 +2,7 @@ package com.example.banking.application;
 
 import com.example.banking.domain.account.AccountId;
 import com.example.banking.domain.account.OpenAccount;
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.eventsourcing.command.CommandBus;
 import io.vavr.control.Either;
@@ -33,14 +34,14 @@ public class OpenAccountGateway {
         if (!userDirectory.exists(ownerId)) {
             return Either.left(new ApplicationError.UserNotFound(userId));
         }
-        String transactionId = UUID.randomUUID().toString();
+        TransactionId transactionId = new TransactionId(UUID.randomUUID().toString());
         AccountId accountId = new AccountId(UUID.randomUUID().toString());
         statusStore.insertPending(transactionId, TYPE);
         submit(transactionId, new OpenAccount(accountId, ownerId));
-        return Either.right(new AccountOpeningAccepted(accountId.value(), transactionId));
+        return Either.right(new AccountOpeningAccepted(accountId, transactionId));
     }
 
-    void submit(String transactionId, OpenAccount command) {
+    void submit(TransactionId transactionId, OpenAccount command) {
         commandBus.dispatch(command).whenComplete((result, error) -> {
             if (error != null) {
                 statusStore.markFailed(transactionId, describe(error));

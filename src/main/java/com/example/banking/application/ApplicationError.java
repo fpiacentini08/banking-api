@@ -1,5 +1,7 @@
 package com.example.banking.application;
 
+import com.example.banking.domain.shared.TransactionId;
+
 /** A synchronous request-time failure, carried in the left arm of an application-service Either.
  *  Distinct from the kernel's async {@code DomainError}. */
 public sealed interface ApplicationError {
@@ -18,7 +20,7 @@ public sealed interface ApplicationError {
         @Override public String message() { return "not the account owner"; }
     }
 
-    record TransactionNotFound(String transactionId) implements ApplicationError {
-        @Override public String message() { return "unknown transaction " + transactionId; }
+    record TransactionNotFound(TransactionId transactionId) implements ApplicationError {
+        @Override public String message() { return "unknown transaction " + transactionId.value(); }
     }
 }

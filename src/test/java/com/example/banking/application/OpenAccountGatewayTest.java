@@ -2,6 +2,7 @@ package com.example.banking.application;
 
 import com.example.banking.domain.account.AccountId;
 import com.example.banking.domain.account.OpenAccount;
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.infra.FullContextTest;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ class OpenAccountGatewayTest {
 
     @Test
     void dispatchedOpenCompletesAndProjectsAccount() {
-        String transactionId = UUID.randomUUID().toString();
+        TransactionId transactionId = new TransactionId(UUID.randomUUID().toString());
         AccountId accountId = new AccountId(UUID.randomUUID().toString());
         UserId ownerId = new UserId(UUID.randomUUID().toString());
         statusStore.insertPending(transactionId, "account-opening");

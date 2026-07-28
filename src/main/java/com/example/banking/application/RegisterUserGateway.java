@@ -1,5 +1,6 @@
 package com.example.banking.application;
 
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.domain.user.RegisterUser;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.eventsourcing.command.CommandBus;
@@ -24,14 +25,14 @@ public class RegisterUserGateway {
     }
 
     public TransactionAccepted register(String name, String email) {
-        String transactionId = UUID.randomUUID().toString();
+        TransactionId transactionId = new TransactionId(UUID.randomUUID().toString());
         UserId userId = new UserId(UUID.randomUUID().toString());
         statusStore.insertPending(transactionId, TYPE);
         submit(transactionId, new RegisterUser(userId, name, email));
         return new TransactionAccepted(transactionId);
     }
 
-    void submit(String transactionId, RegisterUser command) {
+    void submit(TransactionId transactionId, RegisterUser command) {
         commandBus.dispatch(command).whenComplete((result, error) -> {
             if (error != null) {
                 statusStore.markFailed(transactionId, describe(error));
