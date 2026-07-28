@@ -8,8 +8,6 @@ import com.example.banking.infra.FullContextTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @FullContextTest
@@ -19,8 +17,8 @@ class JooqTransactionStatusStoreTest {
 
     @Test
     void terminalStateDoesNotRegressAndDuplicateWriteIsNoOp() {
-        TransactionId txId = new TransactionId(UUID.randomUUID().toString());
-        String userId = UUID.randomUUID().toString();
+        TransactionId txId = new TransactionId("tx-status-terminal");
+        String userId = "user-status-terminal";
         store.insertPending(txId, "user-registration");
         store.markCompleted(txId, userId);
 
@@ -35,7 +33,7 @@ class JooqTransactionStatusStoreTest {
 
     @Test
     void recordsRejectedWithReason() {
-        TransactionId txId = new TransactionId(UUID.randomUUID().toString());
+        TransactionId txId = new TransactionId("tx-status-rejected");
         store.insertPending(txId, "user-registration");
 
         store.markRejected(txId, "nope");
@@ -47,7 +45,7 @@ class JooqTransactionStatusStoreTest {
 
     @Test
     void recordsFailedWithReason() {
-        TransactionId txId = new TransactionId(UUID.randomUUID().toString());
+        TransactionId txId = new TransactionId("tx-status-failed");
         store.insertPending(txId, "user-registration");
 
         store.markFailed(txId, "boom");

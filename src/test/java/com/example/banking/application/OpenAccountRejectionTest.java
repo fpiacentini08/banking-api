@@ -8,7 +8,6 @@ import com.example.banking.infra.FullContextTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,16 +20,16 @@ class OpenAccountRejectionTest {
 
     @Test
     void reopeningTheSameAccountSettlesRejected() {
-        AccountId accountId = new AccountId(UUID.randomUUID().toString());
-        UserId ownerId = new UserId(UUID.randomUUID().toString());
+        AccountId accountId = new AccountId("account-account-rejection");
+        UserId ownerId = new UserId("owner-account-rejection");
 
-        TransactionId firstTransaction = new TransactionId(UUID.randomUUID().toString());
+        TransactionId firstTransaction = new TransactionId("tx-account-rejection-first");
         statusStore.insertPending(firstTransaction, "account-opening");
         gateway.submit(firstTransaction, new OpenAccount(accountId, ownerId));
         await(() -> statusStore.find(firstTransaction)
                 .map(status -> status.state() == TransactionState.COMPLETED).orElse(false));
 
-        TransactionId secondTransaction = new TransactionId(UUID.randomUUID().toString());
+        TransactionId secondTransaction = new TransactionId("tx-account-rejection-second");
         statusStore.insertPending(secondTransaction, "account-opening");
         gateway.submit(secondTransaction, new OpenAccount(accountId, ownerId));   // same accountId
         await(() -> statusStore.find(secondTransaction)

@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.UUID;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,8 +19,8 @@ class TransactionStatusControllerTest {
 
     @Test
     void returnsStatusForKnownTransaction() throws Exception {
-        TransactionId txId = new TransactionId(UUID.randomUUID().toString());
-        String userId = UUID.randomUUID().toString();
+        TransactionId txId = new TransactionId("tx-controller-known");
+        String userId = "user-controller-known";
         store.insertPending(txId, "user-registration");
         store.markCompleted(txId, userId);
 
@@ -35,7 +33,7 @@ class TransactionStatusControllerTest {
 
     @Test
     void pendingStatusOmitsResultUserIdAndReason() throws Exception {
-        TransactionId txId = new TransactionId(UUID.randomUUID().toString());
+        TransactionId txId = new TransactionId("tx-controller-pending");
         store.insertPending(txId, "user-registration");
 
         mockMvc.perform(get("/transactions/{id}", txId.value()))
@@ -47,7 +45,7 @@ class TransactionStatusControllerTest {
 
     @Test
     void returns404ForUnknownTransaction() throws Exception {
-        mockMvc.perform(get("/transactions/{id}", UUID.randomUUID().toString()))
+        mockMvc.perform(get("/transactions/{id}", "tx-controller-unknown"))
                 .andExpect(status().isNotFound());
     }
 }

@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.jooq.impl.DSL.field;
@@ -23,7 +22,7 @@ class UsersRepositoryTest {
     @Test
     void upsertRoundTripsNameEmailAndRegisteredAt() {
         UsersRepository repository = new UsersRepository(dsl);
-        String userId = UUID.randomUUID().toString();
+        String userId = "user-repo-roundtrip";
         // Microsecond precision: fits TIMESTAMP(6) exactly, so no truncation flakiness.
         Instant registeredAt = Instant.parse("2026-07-24T10:15:30.123456Z");
 
@@ -43,7 +42,7 @@ class UsersRepositoryTest {
     @Test
     void reUpsertOfSameUserIdUpdatesInPlace() {
         UsersRepository repository = new UsersRepository(dsl);
-        String userId = UUID.randomUUID().toString();
+        String userId = "user-repo-reupsert";
         Instant registeredAt = Instant.parse("2026-07-24T10:15:30.123456Z");
 
         repository.upsert(userId, "Ada Lovelace", "ada@example.com", registeredAt);

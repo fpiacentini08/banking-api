@@ -11,7 +11,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.jooq.impl.DSL.field;
@@ -59,7 +58,7 @@ class AccountOpeningTest {
     @Test
     void rejectsOpeningForUnknownUserWith422() throws Exception {
         mockMvc.perform(post("/accounts").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userId\":\"" + UUID.randomUUID() + "\"}"))
+                        .content("{\"userId\":\"account-opening-unknown-user\"}"))
                 .andExpect(status().isUnprocessableEntity());
     }
 

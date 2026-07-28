@@ -91,7 +91,7 @@ class DeadlineTest {
     }
 
     private String activeSaga(String txId) {
-        String sagaId = java.util.UUID.randomUUID().toString();
+        String sagaId = "deadline-active-saga-" + txId;
         sagaStore.insert(new SagaInstance(sagaId, "TransferLike",
                 codec.encode(new State(txId, Phase.CREDITING)), false), txId);
         return sagaId;
@@ -135,7 +135,7 @@ class DeadlineTest {
 
     @Test
     void deadlineForTerminalSagaIsDeletedWithoutEffect() {
-        String sagaId = java.util.UUID.randomUUID().toString();
+        String sagaId = "deadline-terminal-saga-t-4";
         sagaStore.insert(new SagaInstance(sagaId, "TransferLike",
                 codec.encode(new State("t-4", Phase.DONE)), true), "t-4");
         scheduler.schedule("TransferLike", sagaId,

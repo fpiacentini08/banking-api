@@ -6,6 +6,7 @@ import com.example.banking.eventsourcing.event.ConcurrencyConflict;
 import com.example.banking.eventsourcing.event.EventStore;
 import com.example.banking.eventsourcing.event.SerializedEvent;
 import com.example.banking.eventsourcing.event.StoredEvent;
+import com.example.banking.eventsourcing.support.SequentialIds;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -40,8 +40,10 @@ class JooqEventStoreTest {
         jdbc.update("UPDATE event_store_sequence SET next_position = 1");
     }
 
+    private static final SequentialIds EVENT_IDS = new SequentialIds("event-store-event");
+
     private static SerializedEvent event(String type) {
-        return new SerializedEvent(UUID.randomUUID().toString(), type, 1, "{\"by\":1}", "{}", Instant.now());
+        return new SerializedEvent(EVENT_IDS.next(), type, 1, "{\"by\":1}", "{}", Instant.now());
     }
 
     @Test

@@ -7,7 +7,6 @@ import com.example.banking.infra.FullContextTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,15 +19,15 @@ class RegisterUserRejectionTest {
 
     @Test
     void reRegistrationOfSameUserSettlesRejected() {
-        UserId userId = new UserId(UUID.randomUUID().toString());
+        UserId userId = new UserId("user-user-rejection");
 
-        TransactionId firstTransaction = new TransactionId(UUID.randomUUID().toString());
+        TransactionId firstTransaction = new TransactionId("tx-user-rejection-first");
         statusStore.insertPending(firstTransaction, "user-registration");
         gateway.submit(firstTransaction, new RegisterUser(userId, "Ada Lovelace", "ada@example.com"));
         await(() -> statusStore.find(firstTransaction)
                 .map(status -> status.state() == TransactionState.COMPLETED).orElse(false));
 
-        TransactionId secondTransaction = new TransactionId(UUID.randomUUID().toString());
+        TransactionId secondTransaction = new TransactionId("tx-user-rejection-second");
         statusStore.insertPending(secondTransaction, "user-registration");
         gateway.submit(secondTransaction, new RegisterUser(userId, "Ada Again", "ada2@example.com"));
         await(() -> statusStore.find(secondTransaction)

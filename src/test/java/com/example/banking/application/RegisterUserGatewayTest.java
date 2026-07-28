@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,8 +22,8 @@ class RegisterUserGatewayTest {
 
     @Test
     void dispatchedRegistrationCompletesAndProjectsUser() {
-        TransactionId transactionId = new TransactionId(UUID.randomUUID().toString());
-        UserId userId = new UserId(UUID.randomUUID().toString());
+        TransactionId transactionId = new TransactionId("tx-user-gateway");
+        UserId userId = new UserId("user-user-gateway");
         statusStore.insertPending(transactionId, "user-registration");
 
         gateway.submit(transactionId, new RegisterUser(userId, "Ada Lovelace", "ada@example.com"));

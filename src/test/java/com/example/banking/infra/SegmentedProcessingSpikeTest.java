@@ -8,6 +8,7 @@ import com.example.banking.eventsourcing.processor.EventHandler;
 import com.example.banking.eventsourcing.event.EventStore;
 import com.example.banking.eventsourcing.event.SerializedEvent;
 import com.example.banking.eventsourcing.common.TransactionalRunner;
+import com.example.banking.eventsourcing.support.SequentialIds;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -57,8 +57,10 @@ class SegmentedProcessingSpikeTest {
         jdbc.update("UPDATE event_store_sequence SET next_position = 1");
     }
 
+    private static final SequentialIds EVENT_IDS = new SequentialIds("segmented-event");
+
     private static SerializedEvent event() {
-        return new SerializedEvent(UUID.randomUUID().toString(), "Ev", 1, "{}", "{}", Instant.now());
+        return new SerializedEvent(EVENT_IDS.next(), "Ev", 1, "{}", "{}", Instant.now());
     }
 
     @Test

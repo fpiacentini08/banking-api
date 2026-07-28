@@ -28,7 +28,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -52,7 +51,7 @@ class UsersProjectionTest {
                 new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), Clock.systemUTC(),
                         new SequentialIds("users-projection-event"));
 
-        UserId id = new UserId(UUID.randomUUID().toString());
+        UserId id = new UserId("user-users-projection");
         SerializedEvent event =
                 serializer.serialize(new UserRegistered(id, "Ada Lovelace", "ada@example.com"), Map.of());
         eventStore.append("User", id.value(), -1, List.of(event));
