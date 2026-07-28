@@ -8,6 +8,7 @@ import com.example.banking.domain.user.User;
 import com.example.banking.domain.user.UserBehaviour;
 import com.example.banking.domain.user.UserCommand;
 import com.example.banking.domain.user.UserEvent;
+import com.example.banking.domain.user.UserAlreadyRegistered;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.domain.user.UserRegistered;
 import com.example.banking.eventsourcing.aggregate.CommittedEvents;
@@ -68,6 +69,19 @@ class UserWriteModelRegistrarTest {
 
         assertThat(result.get()).isEqualTo(new CommittedEvents(userId.value(), 0,
                 List.of(new UserRegistered(userId, "Ada Lovelace", "ada@example.com"))));
+        assertThat(eventStore.readStream(userId.value(), -1)).hasSize(1);
+    }
+
+    @Test
+    void registeredHandlerRehydratesAndRejectsAReRegistration() throws Exception {
+        registrar.afterPropertiesSet();
+        UserId userId = new UserId("user-registrar-2");
+        RegisterUser command = new RegisterUser(userId, "Ada Lovelace", "ada@example.com");
+        commandBus.dispatch(command).get();
+
+        Either<DomainError, CommittedEvents> result = commandBus.dispatch(command).get();
+
+        assertThat(result.getLeft()).isEqualTo(new UserAlreadyRegistered(userId));
         assertThat(eventStore.readStream(userId.value(), -1)).hasSize(1);
     }
 

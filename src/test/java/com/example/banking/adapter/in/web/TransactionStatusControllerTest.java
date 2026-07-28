@@ -48,4 +48,10 @@ class TransactionStatusControllerTest {
         mockMvc.perform(get("/transactions/{id}", "tx-controller-unknown"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void returns404ForBlankTransactionId() throws Exception {
+        mockMvc.perform(get("/transactions/%20"))
+                .andExpect(status().isNotFound());
+    }
 }

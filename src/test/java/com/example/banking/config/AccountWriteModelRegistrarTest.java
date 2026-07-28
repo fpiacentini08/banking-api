@@ -4,6 +4,7 @@ import com.example.banking.adapter.out.eventstore.serialization.JacksonEventSeri
 import com.example.banking.adapter.out.eventstore.serialization.JacksonPayloadCodec;
 import com.example.banking.adapter.out.eventstore.serialization.UpcasterChain;
 import com.example.banking.domain.account.Account;
+import com.example.banking.domain.account.AccountAlreadyOpened;
 import com.example.banking.domain.account.AccountBehaviour;
 import com.example.banking.domain.account.AccountCommand;
 import com.example.banking.domain.account.AccountEvent;
@@ -70,6 +71,19 @@ class AccountWriteModelRegistrarTest {
 
         assertThat(result.get()).isEqualTo(new CommittedEvents(accountId.value(), 0,
                 List.of(new AccountOpened(accountId, ownerId))));
+        assertThat(eventStore.readStream(accountId.value(), -1)).hasSize(1);
+    }
+
+    @Test
+    void registeredHandlerRehydratesAndRejectsAReopening() throws Exception {
+        registrar.afterPropertiesSet();
+        AccountId accountId = new AccountId("account-registrar-2");
+        OpenAccount command = new OpenAccount(accountId, new UserId("account-registrar-owner-2"));
+        commandBus.dispatch(command).get();
+
+        Either<DomainError, CommittedEvents> result = commandBus.dispatch(command).get();
+
+        assertThat(result.getLeft()).isEqualTo(new AccountAlreadyOpened(accountId));
         assertThat(eventStore.readStream(accountId.value(), -1)).hasSize(1);
     }
 

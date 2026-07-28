@@ -15,7 +15,9 @@ public final class TransactionStatusController {
         this.query = query;
     }
 
-    @GetMapping("/transactions/{transactionId}")
+    // The regex keeps a blank path segment (/transactions/%20) out of the handler: it fails to match
+    // and Spring answers 404, rather than TransactionId's blank check surfacing as a 500.
+    @GetMapping("/transactions/{transactionId:\\S+}")
     public TransactionStatusResponse status(@PathVariable String transactionId) {
         return query.status(new TransactionId(transactionId)).fold(
                 error -> { throw WebErrors.toResponseStatus(error); },
