@@ -2,6 +2,7 @@ package com.example.banking.application;
 
 import com.example.banking.domain.account.AccountId;
 import com.example.banking.domain.account.OpenAccount;
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.infra.FullContextTest;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,9 +23,9 @@ class OpenAccountGatewayTest {
 
     @Test
     void dispatchedOpenCompletesAndProjectsAccount() {
-        String transactionId = UUID.randomUUID().toString();
-        AccountId accountId = new AccountId(UUID.randomUUID().toString());
-        UserId ownerId = new UserId(UUID.randomUUID().toString());
+        TransactionId transactionId = new TransactionId("tx-account-gateway");
+        AccountId accountId = new AccountId("account-account-gateway");
+        UserId ownerId = new UserId("owner-account-gateway");
         statusStore.insertPending(transactionId, "account-opening");
 
         gateway.submit(transactionId, new OpenAccount(accountId, ownerId));

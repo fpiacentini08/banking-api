@@ -1,5 +1,7 @@
 package com.example.banking.adapter.out.eventstore.config;
 
+import com.example.banking.adapter.out.id.UuidEventIdGenerator;
+import com.example.banking.adapter.out.id.UuidSagaIdGenerator;
 import com.example.banking.adapter.out.eventstore.saga.JooqDeadlineScheduler;
 import com.example.banking.adapter.out.eventstore.saga.JooqSagaStore;
 import com.example.banking.adapter.out.eventstore.processor.JooqTokenStore;
@@ -12,6 +14,8 @@ import com.example.banking.adapter.out.eventstore.store.SpringTransactionalRunne
 
 import com.example.banking.eventsourcing.command.CommandBus;
 import com.example.banking.eventsourcing.saga.DeadlineScheduler;
+import com.example.banking.eventsourcing.saga.SagaIdGenerator;
+import com.example.banking.eventsourcing.event.EventIdGenerator;
 import com.example.banking.eventsourcing.event.EventSerializer;
 import com.example.banking.eventsourcing.event.EventStore;
 import com.example.banking.eventsourcing.event.EventTypeRegistry;
@@ -57,9 +61,20 @@ public class EventSourcingConfig {
     }
 
     @Bean
+    EventIdGenerator eventIdGenerator() {
+        return new UuidEventIdGenerator();
+    }
+
+    @Bean
+    SagaIdGenerator sagaIdGenerator() {
+        return new UuidSagaIdGenerator();
+    }
+
+    @Bean
     EventSerializer eventSerializer(ObjectMapper mapper, EventTypeRegistry registry,
-                                    UpcasterChain upcasters, Clock kernelClock) {
-        return new JacksonEventSerializer(mapper, registry, upcasters, kernelClock);
+                                    UpcasterChain upcasters, Clock kernelClock,
+                                    EventIdGenerator eventIdGenerator) {
+        return new JacksonEventSerializer(mapper, registry, upcasters, kernelClock, eventIdGenerator);
     }
 
     @Bean

@@ -7,8 +7,6 @@ import com.example.banking.domain.account.Account;
 import com.example.banking.domain.account.AccountBehaviour;
 import com.example.banking.domain.account.AccountCommand;
 import com.example.banking.domain.account.AccountEvent;
-import com.example.banking.domain.account.AccountOpened;
-import com.example.banking.domain.account.OpenAccount;
 import com.example.banking.eventsourcing.aggregate.EventSourcingRepository;
 import com.example.banking.eventsourcing.command.CommandBus;
 import com.example.banking.eventsourcing.common.PayloadCodec;
@@ -20,7 +18,6 @@ import com.example.banking.eventsourcing.processor.TokenStore;
 import com.example.banking.eventsourcing.processor.TrackingProcessor;
 import com.example.banking.eventsourcing.snapshot.SnapshotStore;
 import org.jooq.DSLContext;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -43,16 +40,10 @@ public class AccountWriteConfig {
     }
 
     @Bean
-    InitializingBean registerAccountEventTypes(EventTypeRegistry registry) {
-        return () -> registry.register("AccountOpened", 1, AccountOpened.class);
-    }
-
-    @Bean
-    InitializingBean registerAccountCommandHandler(
-            CommandBus commandBus,
+    AccountWriteModelRegistrar accountWriteModelRegistrar(
+            EventTypeRegistry registry, CommandBus commandBus,
             EventSourcingRepository<Account, AccountCommand, AccountEvent> accountRepository) {
-        return () -> commandBus.register(OpenAccount.class, command -> command.accountId().value(),
-                command -> accountRepository.execute(command.accountId().value(), command));
+        return new AccountWriteModelRegistrar(registry, commandBus, accountRepository);
     }
 
     @Bean

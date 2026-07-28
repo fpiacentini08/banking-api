@@ -1,5 +1,6 @@
 package com.example.banking.adapter.out.eventstore.serialization;
 
+import com.example.banking.eventsourcing.event.EventIdGenerator;
 import com.example.banking.eventsourcing.event.EventSerializer;
 import com.example.banking.eventsourcing.event.EventTypeRegistry;
 import com.example.banking.eventsourcing.event.SerializedEvent;
@@ -9,7 +10,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.Clock;
 import java.util.Map;
-import java.util.UUID;
 
 public final class JacksonEventSerializer implements EventSerializer {
 
@@ -17,13 +17,15 @@ public final class JacksonEventSerializer implements EventSerializer {
     private final EventTypeRegistry registry;
     private final UpcasterChain upcasters;
     private final Clock clock;
+    private final EventIdGenerator eventIds;
 
     public JacksonEventSerializer(ObjectMapper mapper, EventTypeRegistry registry,
-                                  UpcasterChain upcasters, Clock clock) {
+                                  UpcasterChain upcasters, Clock clock, EventIdGenerator eventIds) {
         this.mapper = mapper;
         this.registry = registry;
         this.upcasters = upcasters;
         this.clock = clock;
+        this.eventIds = eventIds;
     }
 
     @Override
@@ -31,7 +33,7 @@ public final class JacksonEventSerializer implements EventSerializer {
         EventTypeRegistry.EventType type = registry.byClass(event.getClass());
         try {
             return new SerializedEvent(
-                    UUID.randomUUID().toString(),
+                    eventIds.next(),
                     type.name(),
                     type.currentRevision(),
                     mapper.writeValueAsString(event),

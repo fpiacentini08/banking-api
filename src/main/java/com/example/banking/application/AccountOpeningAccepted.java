@@ -1,3 +1,6 @@
 package com.example.banking.application;
 
-public record AccountOpeningAccepted(String accountId, String transactionId) {}
+import com.example.banking.domain.account.AccountId;
+import com.example.banking.domain.shared.TransactionId;
+
+public record AccountOpeningAccepted(AccountId accountId, TransactionId transactionId) {}

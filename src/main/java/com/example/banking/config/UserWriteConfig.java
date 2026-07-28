@@ -3,12 +3,10 @@ package com.example.banking.config;
 import com.example.banking.adapter.out.eventstore.config.EventSourcingProperties;
 import com.example.banking.adapter.out.projection.UsersProjection;
 import com.example.banking.adapter.out.projection.UsersRepository;
-import com.example.banking.domain.user.RegisterUser;
 import com.example.banking.domain.user.User;
 import com.example.banking.domain.user.UserBehaviour;
 import com.example.banking.domain.user.UserCommand;
 import com.example.banking.domain.user.UserEvent;
-import com.example.banking.domain.user.UserRegistered;
 import com.example.banking.eventsourcing.aggregate.EventSourcingRepository;
 import com.example.banking.eventsourcing.command.CommandBus;
 import com.example.banking.eventsourcing.common.PayloadCodec;
@@ -20,7 +18,6 @@ import com.example.banking.eventsourcing.processor.TokenStore;
 import com.example.banking.eventsourcing.processor.TrackingProcessor;
 import com.example.banking.eventsourcing.snapshot.SnapshotStore;
 import org.jooq.DSLContext;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -44,15 +41,10 @@ public class UserWriteConfig {
     }
 
     @Bean
-    InitializingBean registerUserEventTypes(EventTypeRegistry registry) {
-        return () -> registry.register("UserRegistered", 1, UserRegistered.class);
-    }
-
-    @Bean
-    InitializingBean registerUserCommandHandler(
-            CommandBus commandBus, EventSourcingRepository<User, UserCommand, UserEvent> userRepository) {
-        return () -> commandBus.register(RegisterUser.class, command -> command.userId().value(),
-                command -> userRepository.execute(command.userId().value(), command));
+    UserWriteModelRegistrar userWriteModelRegistrar(
+            EventTypeRegistry registry, CommandBus commandBus,
+            EventSourcingRepository<User, UserCommand, UserEvent> userRepository) {
+        return new UserWriteModelRegistrar(registry, commandBus, userRepository);
     }
 
     @Bean

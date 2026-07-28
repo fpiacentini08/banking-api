@@ -15,6 +15,7 @@ import com.example.banking.eventsourcing.event.EventTypeRegistry;
 import com.example.banking.eventsourcing.event.SerializedEvent;
 import com.example.banking.eventsourcing.processor.TokenStore;
 import com.example.banking.eventsourcing.processor.TrackingProcessor;
+import com.example.banking.eventsourcing.support.SequentialIds;
 import com.example.banking.infra.FullContextTest;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -49,10 +49,11 @@ class AccountBalanceProjectionTest {
         EventTypeRegistry registry = new EventTypeRegistry();
         registry.register("AccountOpened", 1, AccountOpened.class);
         EventSerializer serializer =
-                new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), Clock.systemUTC());
+                new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), Clock.systemUTC(),
+                        new SequentialIds("balance-projection-event"));
 
-        AccountId accountId = new AccountId(UUID.randomUUID().toString());
-        UserId ownerId = new UserId(UUID.randomUUID().toString());
+        AccountId accountId = new AccountId("account-balance-projection");
+        UserId ownerId = new UserId("owner-balance-projection");
         SerializedEvent event = serializer.serialize(new AccountOpened(accountId, ownerId), Map.of());
         eventStore.append("Account", accountId.value(), -1, List.of(event));
 

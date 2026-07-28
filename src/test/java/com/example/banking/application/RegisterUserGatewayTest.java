@@ -1,5 +1,6 @@
 package com.example.banking.application;
 
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.domain.user.RegisterUser;
 import com.example.banking.domain.user.UserId;
 import com.example.banking.infra.FullContextTest;
@@ -8,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,8 +22,8 @@ class RegisterUserGatewayTest {
 
     @Test
     void dispatchedRegistrationCompletesAndProjectsUser() {
-        String transactionId = UUID.randomUUID().toString();
-        UserId userId = new UserId(UUID.randomUUID().toString());
+        TransactionId transactionId = new TransactionId("tx-user-gateway");
+        UserId userId = new UserId("user-user-gateway");
         statusStore.insertPending(transactionId, "user-registration");
 
         gateway.submit(transactionId, new RegisterUser(userId, "Ada Lovelace", "ada@example.com"));

@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
-import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -21,8 +20,8 @@ class AccountBalanceControllerTest {
 
     @Test
     void returnsZeroBalanceForTheOwner() throws Exception {
-        String accountId = UUID.randomUUID().toString();
-        String ownerId = UUID.randomUUID().toString();
+        String accountId = "account-balance-owner";
+        String ownerId = "owner-balance-owner";
         accounts.upsert(accountId, ownerId, 0L, 0L, Instant.parse("2026-07-25T10:15:30Z"));
 
         mockMvc.perform(get("/accounts/{id}/balance", accountId).header("X-User-Id", ownerId))
@@ -34,17 +33,17 @@ class AccountBalanceControllerTest {
 
     @Test
     void forbidsANonOwner() throws Exception {
-        String accountId = UUID.randomUUID().toString();
-        accounts.upsert(accountId, UUID.randomUUID().toString(), 0L, 0L, Instant.now());
+        String accountId = "account-balance-forbidden";
+        accounts.upsert(accountId, "owner-balance-forbidden", 0L, 0L, Instant.now());
 
-        mockMvc.perform(get("/accounts/{id}/balance", accountId).header("X-User-Id", UUID.randomUUID().toString()))
+        mockMvc.perform(get("/accounts/{id}/balance", accountId).header("X-User-Id", "other-balance-forbidden"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void notFoundForUnknownAccount() throws Exception {
-        mockMvc.perform(get("/accounts/{id}/balance", UUID.randomUUID().toString())
-                        .header("X-User-Id", UUID.randomUUID().toString()))
+        mockMvc.perform(get("/accounts/{id}/balance", "account-balance-unknown")
+                        .header("X-User-Id", "owner-balance-unknown"))
                 .andExpect(status().isNotFound());
     }
 }

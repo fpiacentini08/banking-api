@@ -49,12 +49,13 @@ public final class CounterBehaviour
 
     /** Test serializer: encodes counter events as "<SimpleName>:<by>". */
     public static com.example.banking.eventsourcing.event.EventSerializer testSerializer() {
+        SequentialIds eventIds = new SequentialIds("counter-event");
         return new com.example.banking.eventsourcing.event.EventSerializer() {
             @Override
             public com.example.banking.eventsourcing.event.SerializedEvent serialize(Object event, java.util.Map<String, String> metadata) {
                 int by = event instanceof Incremented i ? i.by() : ((Decremented) event).by();
                 return new com.example.banking.eventsourcing.event.SerializedEvent(
-                        java.util.UUID.randomUUID().toString(),
+                        eventIds.next(),
                         event.getClass().getSimpleName(), 1,
                         event.getClass().getSimpleName() + ":" + by, "{}",
                         java.time.Instant.EPOCH);

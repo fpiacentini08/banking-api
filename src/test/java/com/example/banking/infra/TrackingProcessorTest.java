@@ -9,6 +9,7 @@ import com.example.banking.eventsourcing.event.StoredEvent;
 import com.example.banking.eventsourcing.processor.TokenStore;
 import com.example.banking.eventsourcing.processor.TrackingProcessor;
 import com.example.banking.eventsourcing.common.TransactionalRunner;
+import com.example.banking.eventsourcing.support.SequentialIds;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,10 +57,12 @@ class TrackingProcessorTest {
                 2, Duration.ofMillis(50));
     }
 
+    private static final SequentialIds EVENT_IDS = new SequentialIds("tracking-processor-event");
+
     private void appendEvents(String aggregateId, int count) {
         for (int i = 0; i < count; i++) {
             eventStore.append("Counter", aggregateId, i - 1, List.of(new SerializedEvent(
-                    UUID.randomUUID().toString(), "Incremented", 1, "{\"by\":1}", "{}", Instant.now())));
+                    EVENT_IDS.next(), "Incremented", 1, "{\"by\":1}", "{}", Instant.now())));
         }
     }
 

@@ -17,6 +17,7 @@ import com.example.banking.eventsourcing.event.EventTypeRegistry;
 import com.example.banking.eventsourcing.common.PayloadCodec;
 import com.example.banking.eventsourcing.saga.SagaInstance;
 import com.example.banking.eventsourcing.saga.SagaManager;
+import com.example.banking.eventsourcing.support.SequentialIds;
 import com.example.banking.eventsourcing.support.TransferLikeSaga;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,15 +82,16 @@ class DeadlineTest {
         };
         SagaManager<TransferLikeSaga.State> manager = new SagaManager<>(new TransferLikeSaga(),
                 sagaStore, codec, TransferLikeSaga.State.class,
-                new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), clock),
-                recordingBus, scheduler);
+                new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), clock,
+                        new SequentialIds("deadline-event")),
+                recordingBus, scheduler, new SequentialIds("deadline-saga"));
         poller = new DeadlinePoller(new DeadlineRepository(dsl),
                 new SpringTransactionalRunner(new TransactionTemplate(txManager)),
                 codec, registry, Map.of("TransferLike", manager), clock, Duration.ofMillis(50));
     }
 
     private String activeSaga(String txId) {
-        String sagaId = java.util.UUID.randomUUID().toString();
+        String sagaId = "deadline-active-saga-" + txId;
         sagaStore.insert(new SagaInstance(sagaId, "TransferLike",
                 codec.encode(new State(txId, Phase.CREDITING)), false), txId);
         return sagaId;
@@ -133,7 +135,7 @@ class DeadlineTest {
 
     @Test
     void deadlineForTerminalSagaIsDeletedWithoutEffect() {
-        String sagaId = java.util.UUID.randomUUID().toString();
+        String sagaId = "deadline-terminal-saga-t-4";
         sagaStore.insert(new SagaInstance(sagaId, "TransferLike",
                 codec.encode(new State("t-4", Phase.DONE)), true), "t-4");
         scheduler.schedule("TransferLike", sagaId,

@@ -16,6 +16,7 @@ import com.example.banking.eventsourcing.saga.SagaManager;
 import com.example.banking.eventsourcing.saga.SagaStore;
 import com.example.banking.eventsourcing.event.SerializedEvent;
 import com.example.banking.eventsourcing.event.StoredEvent;
+import com.example.banking.eventsourcing.support.SequentialIds;
 import com.example.banking.eventsourcing.support.TransferLikeSaga;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,8 @@ class SagaManagerTest {
         registry.register("Requested", 1, Requested.class);
         registry.register("Debited", 1, Debited.class);
         registry.register("Credited", 1, Credited.class);
-        serializer = new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), Clock.systemUTC());
+        serializer = new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), Clock.systemUTC(),
+                new SequentialIds("saga-manager-event"));
         dispatched = new CopyOnWriteArrayList<>();
         scheduled = new CopyOnWriteArrayList<>();
         cancelled = new CopyOnWriteArrayList<>();
@@ -80,7 +82,8 @@ class SagaManagerTest {
         };
         sagaStore = new JooqSagaStore(dsl);
         manager = new SagaManager<>(new TransferLikeSaga(), sagaStore, new JacksonPayloadCodec(mapper),
-                TransferLikeSaga.State.class, serializer, recordingBus, recordingDeadlines);
+                TransferLikeSaga.State.class, serializer, recordingBus, recordingDeadlines,
+                new SequentialIds("saga-manager-saga"));
     }
 
     private StoredEvent stored(Object event, long position) {

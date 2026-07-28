@@ -3,11 +3,10 @@ package com.example.banking.adapter.out.projection;
 import com.example.banking.application.TransactionState;
 import com.example.banking.application.TransactionStatus;
 import com.example.banking.application.TransactionStatusStore;
+import com.example.banking.domain.shared.TransactionId;
 import com.example.banking.infra.FullContextTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,8 +17,8 @@ class JooqTransactionStatusStoreTest {
 
     @Test
     void terminalStateDoesNotRegressAndDuplicateWriteIsNoOp() {
-        String txId = UUID.randomUUID().toString();
-        String userId = UUID.randomUUID().toString();
+        TransactionId txId = new TransactionId("tx-status-terminal");
+        String userId = "user-status-terminal";
         store.insertPending(txId, "user-registration");
         store.markCompleted(txId, userId);
 
@@ -34,7 +33,7 @@ class JooqTransactionStatusStoreTest {
 
     @Test
     void recordsRejectedWithReason() {
-        String txId = UUID.randomUUID().toString();
+        TransactionId txId = new TransactionId("tx-status-rejected");
         store.insertPending(txId, "user-registration");
 
         store.markRejected(txId, "nope");
@@ -46,7 +45,7 @@ class JooqTransactionStatusStoreTest {
 
     @Test
     void recordsFailedWithReason() {
-        String txId = UUID.randomUUID().toString();
+        TransactionId txId = new TransactionId("tx-status-failed");
         store.insertPending(txId, "user-registration");
 
         store.markFailed(txId, "boom");
