@@ -8,7 +8,6 @@ import com.example.banking.eventsourcing.command.CommandBus;
 import io.vavr.control.Either;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
 import java.util.concurrent.CompletionException;
 
 /** Application command gateway for account opening: validates the owner exists, accepts, records
@@ -21,12 +20,17 @@ public class OpenAccountGateway {
     private final CommandBus commandBus;
     private final TransactionStatusStore statusStore;
     private final UserDirectory userDirectory;
+    private final AccountIdGenerator accountIds;
+    private final TransactionIdGenerator transactionIds;
 
     public OpenAccountGateway(CommandBus commandBus, TransactionStatusStore statusStore,
-                              UserDirectory userDirectory) {
+                              UserDirectory userDirectory, AccountIdGenerator accountIds,
+                              TransactionIdGenerator transactionIds) {
         this.commandBus = commandBus;
         this.statusStore = statusStore;
         this.userDirectory = userDirectory;
+        this.accountIds = accountIds;
+        this.transactionIds = transactionIds;
     }
 
     public Either<ApplicationError, AccountOpeningAccepted> open(String userId) {
@@ -34,8 +38,8 @@ public class OpenAccountGateway {
         if (!userDirectory.exists(ownerId)) {
             return Either.left(new ApplicationError.UserNotFound(userId));
         }
-        TransactionId transactionId = new TransactionId(UUID.randomUUID().toString());
-        AccountId accountId = new AccountId(UUID.randomUUID().toString());
+        TransactionId transactionId = transactionIds.next();
+        AccountId accountId = accountIds.next();
         statusStore.insertPending(transactionId, TYPE);
         submit(transactionId, new OpenAccount(accountId, ownerId));
         return Either.right(new AccountOpeningAccepted(accountId, transactionId));

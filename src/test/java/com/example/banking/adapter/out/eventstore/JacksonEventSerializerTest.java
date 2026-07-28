@@ -6,6 +6,7 @@ import com.example.banking.adapter.out.eventstore.serialization.UpcasterChain;
 
 import com.example.banking.eventsourcing.event.EventTypeRegistry;
 import com.example.banking.eventsourcing.event.SerializedEvent;
+import com.example.banking.eventsourcing.support.SequentialIds;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -36,7 +37,8 @@ class JacksonEventSerializerTest {
     @Test
     void roundTripsAnEventAtCurrentRevision() {
         JacksonEventSerializer serializer =
-                new JacksonEventSerializer(mapper, registry(), new UpcasterChain(List.of()), clock);
+                new JacksonEventSerializer(mapper, registry(), new UpcasterChain(List.of()), clock,
+                        new SequentialIds("serializer-event"));
         MoneyDepositedV2 event = new MoneyDepositedV2("a-1", 500, "cash");
 
         SerializedEvent serialized = serializer.serialize(event, Map.of("userId", "u-1"));
@@ -59,7 +61,8 @@ class JacksonEventSerializerTest {
             }
         };
         JacksonEventSerializer serializer =
-                new JacksonEventSerializer(mapper, registry(), new UpcasterChain(List.of(v1ToV2)), clock);
+                new JacksonEventSerializer(mapper, registry(), new UpcasterChain(List.of(v1ToV2)), clock,
+                        new SequentialIds("serializer-event"));
         SerializedEvent v1 = new SerializedEvent("e-1", "MoneyDeposited", 1,
                 "{\"accountId\":\"a-1\",\"amountCents\":500}", "{}", Instant.parse("2026-01-01T00:00:00Z"));
 
@@ -71,7 +74,8 @@ class JacksonEventSerializerTest {
     @Test
     void unregisteredTypeIsRejectedOnBothArms() {
         JacksonEventSerializer serializer =
-                new JacksonEventSerializer(mapper, registry(), new UpcasterChain(List.of()), clock);
+                new JacksonEventSerializer(mapper, registry(), new UpcasterChain(List.of()), clock,
+                        new SequentialIds("serializer-event"));
 
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> serializer.serialize("not registered", Map.of()));

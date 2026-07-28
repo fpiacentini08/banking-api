@@ -6,8 +6,6 @@ import com.example.banking.eventsourcing.event.EventSerializer;
 import com.example.banking.eventsourcing.event.StoredEvent;
 import com.example.banking.eventsourcing.processor.EventHandler;
 
-import java.util.UUID;
-
 /**
  * Runs a saga behaviour as an event handler on a tracking processor: correlate, load or start,
  * react, persist, then perform effects (dispatch commands, schedule/cancel deadlines).
@@ -22,10 +20,12 @@ public final class SagaManager<S> implements EventHandler {
     private final EventSerializer serializer;
     private final CommandBus commandBus;
     private final DeadlineScheduler deadlines;
+    private final SagaIdGenerator sagaIds;
 
     public SagaManager(SagaBehaviour<S> behaviour, SagaStore store, PayloadCodec codec,
                        Class<S> stateType, EventSerializer serializer,
-                       CommandBus commandBus, DeadlineScheduler deadlines) {
+                       CommandBus commandBus, DeadlineScheduler deadlines,
+                       SagaIdGenerator sagaIds) {
         this.behaviour = behaviour;
         this.store = store;
         this.codec = codec;
@@ -33,6 +33,7 @@ public final class SagaManager<S> implements EventHandler {
         this.serializer = serializer;
         this.commandBus = commandBus;
         this.deadlines = deadlines;
+        this.sagaIds = sagaIds;
     }
 
     @Override
@@ -54,7 +55,7 @@ public final class SagaManager<S> implements EventHandler {
             if (!behaviour.startsSaga(event)) {
                 return;
             }
-            instance = new SagaInstance(UUID.randomUUID().toString(), behaviour.sagaType(),
+            instance = new SagaInstance(sagaIds.next(), behaviour.sagaType(),
                     codec.encode(behaviour.initial(key)), false);
             store.insert(instance, key);
         }

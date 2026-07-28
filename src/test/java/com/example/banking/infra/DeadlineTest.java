@@ -17,6 +17,7 @@ import com.example.banking.eventsourcing.event.EventTypeRegistry;
 import com.example.banking.eventsourcing.common.PayloadCodec;
 import com.example.banking.eventsourcing.saga.SagaInstance;
 import com.example.banking.eventsourcing.saga.SagaManager;
+import com.example.banking.eventsourcing.support.SequentialIds;
 import com.example.banking.eventsourcing.support.TransferLikeSaga;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,8 +82,9 @@ class DeadlineTest {
         };
         SagaManager<TransferLikeSaga.State> manager = new SagaManager<>(new TransferLikeSaga(),
                 sagaStore, codec, TransferLikeSaga.State.class,
-                new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), clock),
-                recordingBus, scheduler);
+                new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), clock,
+                        new SequentialIds("deadline-event")),
+                recordingBus, scheduler, new SequentialIds("deadline-saga"));
         poller = new DeadlinePoller(new DeadlineRepository(dsl),
                 new SpringTransactionalRunner(new TransactionTemplate(txManager)),
                 codec, registry, Map.of("TransferLike", manager), clock, Duration.ofMillis(50));

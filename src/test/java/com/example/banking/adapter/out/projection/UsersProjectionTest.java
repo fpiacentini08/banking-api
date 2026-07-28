@@ -14,6 +14,7 @@ import com.example.banking.eventsourcing.event.EventTypeRegistry;
 import com.example.banking.eventsourcing.event.SerializedEvent;
 import com.example.banking.eventsourcing.processor.TokenStore;
 import com.example.banking.eventsourcing.processor.TrackingProcessor;
+import com.example.banking.eventsourcing.support.SequentialIds;
 import com.example.banking.infra.FullContextTest;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,8 @@ class UsersProjectionTest {
         EventTypeRegistry registry = new EventTypeRegistry();
         registry.register("UserRegistered", 1, UserRegistered.class);
         EventSerializer serializer =
-                new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), Clock.systemUTC());
+                new JacksonEventSerializer(mapper, registry, new UpcasterChain(List.of()), Clock.systemUTC(),
+                        new SequentialIds("users-projection-event"));
 
         UserId id = new UserId(UUID.randomUUID().toString());
         SerializedEvent event =
